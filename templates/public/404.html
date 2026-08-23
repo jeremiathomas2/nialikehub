@@ -1,0 +1,24 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_theme_init.html" %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Not found</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/nialike.css' %}?v=9">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="neu-card">
+      <div style="font-family:var(--font-display);font-size:3rem;color:var(--gold);">404</div>
+      <h2 class="card-title mb">Invitation not found</h2>
+      <p class="muted small mb">This link may be incorrect, or the event is no longer available.</p>
+      <a class="neu-btn primary block" href="/">Go home</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

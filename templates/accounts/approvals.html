@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}User Approvals - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}Administration{% endblock %}
+{% block page_title %}User Approvals{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <span class="badge b-gold"><span class="dot"></span>{{ pending_count }} pending approval{{ pending_count|pluralize }}</span>
+</div>
+
+<div class="neu-card table-wrap">
+  {% if rows %}
+  <table class="neu-table">
+    <thead>
+      <tr><th>User</th><th>Email</th><th>Phone</th><th>Registered</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for u in rows %}
+      <tr>
+        <td>
+          <div class="row-flex">
+            <span class="avatar">{{ u.name|initials }}</span>
+            <b>{{ u.name|default:"-" }}</b>
+          </div>
+        </td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.phone|default:"-" }}</td>
+        <td class="small muted nowrap">{{ u.created_at|date:"d M Y" }}</td>
+        <td>
+          <span class="badge {% if u.status == 'approved' %}b-green{% elif u.status == 'pending' %}b-gold{% else %}b-red{% endif %}"><span class="dot"></span>{{ u.status|status_label }}</span>
+        </td>
+        <td>
+          <form method="post" class="inline-form">{% csrf_token %}
+            <input type="hidden" name="id" value="{{ u.pk }}">
+            <select class="neu-input" name="status">
+              {% for s in statuses %}<option value="{{ s }}" {% if u.status == s %}selected{% endif %}>{{ s|status_label }}</option>{% endfor %}
+            </select>
+            <button class="neu-btn sm">Save</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="big">No users yet</div></div>
+  {% endif %}
+</div>
+{% endblock %}

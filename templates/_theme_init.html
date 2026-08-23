@@ -1,0 +1,10 @@
+<script>
+  (function () {
+    "use strict";
+    var t = null;
+    try { t = localStorage.getItem("nl-theme"); } catch (e) {}
+    var dark = t !== null ? t === "dark"
+      : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (dark) document.documentElement.classList.add("dark");
+  })();
+</script>

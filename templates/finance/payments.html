@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Payments - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}Finance{% endblock %}
+{% block page_title %}Payment Ledger{% endblock %}
+
+{% block content %}
+<div class="two-col mb">
+  <div class="neu-card">
+    <h3 class="card-title mb">Initiate Mobile-Money Payment</h3>
+    {% if not palmpesa_enabled %}
+      <div class="alert warning">PalmPesa is not configured. Set credentials on the Gateway &amp; System page, or record payments from the Pledges page.</div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="initiate">
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="f-label">Event *</label>
+          <select class="neu-input" name="event_id" id="pay-event" required>
+            <option value="">- Select event -</option>
+            {% for e in events %}<option value="{{ e.pk }}" {% if e.pk == selected_event_id %}selected{% endif %}>{{ e.title }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">Guest</label>
+          <select class="neu-input" name="guest_id" id="pay-guest">
+            <option value="">- No guest -</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">Phone *</label>
+          <input class="neu-input" type="text" name="phone" required placeholder="0712 345 678">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Amount ({{ brand.currency }}) *</label>
+          <input class="neu-input" type="number" name="amount" min="1" step="any" required placeholder="50000">
+        </div>
+      </div>
+      <button type="submit" class="neu-btn primary">Send Payment Request</button>
+      <p class="form-hint mt">The customer receives a mobile-money prompt to approve.</p>
+    </form>
+  </div>
+
+  <div class="neu-card">
+    <h3 class="card-title mb">Filter transactions</h3>
+    <form method="get">
+      <div class="form-row">
+        <label class="f-label">Event</label>
+        <select class="neu-input" name="event_id" data-autosubmit>
+          <option value="">All events</option>
+          {% for e in events %}<option value="{{ e.pk }}" {% if e.pk == selected_event_id %}selected{% endif %}>{{ e.title }}</option>{% endfor %}
+        </select>
+      </div>
+    </form>
+    <p class="small muted">Showing the latest {{ rows|length }} transaction(s). Successful payments can be marked refunded.</p>
+  </div>
+</div>
+
+<div class="neu-card table-wrap">
+  {% if rows %}
+  <table class="neu-table">
+    <thead>
+      <tr><th>Reference</th><th>Event / Guest</th><th>Amount</th><th>Phone</th><th>Status</th><th>Date</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for p in rows %}
+      <tr>
+        <td><span class="mono">{{ p.reference }}</span></td>
+        <td><b>{{ p.event.title }}</b><br><span class="small muted">{{ p.guest.name|default:"-" }}</span></td>
+        <td class="nowrap">{{ p.amount|money }}</td>
+        <td>{{ p.phone }}</td>
+        <td><span class="badge {{ p.status|status_badge }}"><span class="dot"></span>{{ p.status|status_label }}</span></td>
+        <td class="nowrap small muted">{{ p.created_at|date:"d M Y, H:i" }}</td>
+        <td>
+          {% if p.status == 'success' %}
+          <form method="post" data-confirm="Mark this payment as refunded?">{% csrf_token %}
+            <input type="hidden" name="op" value="refund_mark">
+            <input type="hidden" name="payment_id" value="{{ p.pk }}">
+            <button class="neu-btn sm danger">Refund</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="big">No transactions yet</div>
+    Initiate a payment or record one from a pledge.
+  </div>
+  {% endif %}
+</div>
+
+{{ guests_by_event|json_script:"guest-data" }}
+{% endblock %}

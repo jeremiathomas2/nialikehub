@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}{{ event.title }} - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}Event details{% endblock %}
+{% block page_title %}Event Overview{% endblock %}
+
+{% block content %}
+<div class="event-hero">
+  <span class="badge {{ event.status|status_badge }}" style="background:rgba(255,255,255,.15);color:#fdfbe8;"><span class="dot"></span>{{ event.status|status_label }}</span>
+  <h2>{{ event.title }}</h2>
+  <div class="hero-meta">
+    <div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg>
+      {{ event.event_date|date:"l, d F Y" }} - {{ event.start_time|time:"H:i" }}
+    </div>
+    {% if event.venue %}<div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      {{ event.venue }}{% if event.address %}, {{ event.address }}{% endif %}
+    </div>{% endif %}
+  </div>
+  <div class="share-box">
+    <code>{{ public_url }}</code>
+    <button type="button" class="neu-btn sm" data-copy-text="{{ public_url }}">Copy Link</button>
+    <a class="neu-btn sm" href="{{ public_url }}" target="_blank">Preview</a>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/></svg></div>
+    <div class="stat-value">{{ summary.Guests }}</div>
+    <div class="stat-label">Guests</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+    <div class="stat-value">{{ summary.RSVP }}</div>
+    <div class="stat-label">RSVP Confirmed</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.3 12C19 16.4 12 21 12 21z"/></svg></div>
+    <div class="stat-value sm">{{ summary.Pledge|money }}</div>
+    <div class="stat-label">Pledged</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div>
+    <div class="stat-value sm">{{ summary.Collected|money }}</div>
+    <div class="stat-label">Collected</div>
+  </div>
+</div>
+
+<div class="quick-grid mb">
+  <a class="quick-card" href="{% url 'events:guests' event.pk %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/></svg></span>Guest List
+  </a>
+  <a class="quick-card" href="{% url 'finance:pledges' event.pk %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.3 12C19 16.4 12 21 12 21z"/></svg></span>Pledges
+  </a>
+  <a class="quick-card" href="{% url 'messaging:messages' event.pk %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.6 9.6 0 0 1-3.2-.6L3 21l1.7-4.6A8.2 8.2 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 9 8.4z"/></svg></span>Messages
+  </a>
+  <a class="quick-card" href="{% url 'messaging:cards' event.pk %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></span>Cards
+  </a>
+</div>
+
+<div class="neu-card" style="max-width:720px;">
+  <h3 class="card-title mb">Actions</h3>
+  <div class="row-flex">
+    {% if event.status == 'draft' %}
+    <form method="post">{% csrf_token %}<button class="neu-btn primary" name="op" value="publish">Publish Event</button></form>
+    {% elif event.status == 'published' %}
+    <form method="post">{% csrf_token %}<button class="neu-btn" name="op" value="close">Close Event</button></form>
+    {% endif %}
+    <form method="post" data-confirm="Delete this event and all its guests, pledges, payments and messages? This cannot be undone." style="margin-left:auto;">{% csrf_token %}
+      <button class="neu-btn danger" name="op" value="delete">Delete Event</button>
+    </form>
+  </div>
+  <p class="form-hint mt">Publishing makes the public invitation page live at the link above.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Guests - {{ event.title }} - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}{{ event.title }}{% endblock %}
+{% block page_title %}Guest List{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+    <input type="text" placeholder="Search guests..." data-search-rows="#guests-table">
+  </div>
+  <button class="neu-btn primary sm" style="margin-left:auto;" onclick="openModal('modal-add-guest')">+ Add Guest</button>
+</div>
+
+<div class="neu-card table-wrap">
+  {% if rows %}
+  <table class="neu-table" id="guests-table">
+    <thead>
+      <tr><th>Guest</th><th>Contact</th><th>Pledged</th><th>Paid</th><th>RSVP</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for g in rows %}
+      <tr>
+        <td><b>{{ g.name }}</b>{% if g.category %}<br><span class="small muted">{{ g.category }}</span>{% endif %}</td>
+        <td>{{ g.phone|default:"-" }}<br><span class="small muted">{{ g.email|default:"" }}</span></td>
+        <td class="nowrap">{{ g.pledged|money }}</td>
+        <td class="nowrap">{{ g.paid|money }}</td>
+        <td>
+          {% if g.invitation_status == 'rsvp_yes' %}<span class="badge b-green"><span class="dot"></span>Attending</span>
+          {% elif g.invitation_status == 'rsvp_no' %}<span class="badge b-red"><span class="dot"></span>Declined</span>
+          {% else %}<span class="badge b-muted"><span class="dot"></span>Awaiting</span>{% endif %}
+        </td>
+        <td>
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="op" value="status">
+            <input type="hidden" name="guest_id" value="{{ g.pk }}">
+            <select class="neu-input" name="status" data-autosubmit>
+              {% for s in statuses %}
+                <option value="{{ s }}" {% if g.invitation_status == s %}selected{% endif %}>{{ s|status_label }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>
+          <div class="cell-actions">
+            <a class="neu-btn sm" href="{% url 'events:rsvp' g.rsvp_token %}" target="_blank">RSVP Link</a>
+            <form method="post" data-confirm="Remove {{ g.name }}?">{% csrf_token %}
+              <input type="hidden" name="op" value="delete">
+              <input type="hidden" name="guest_id" value="{{ g.pk }}">
+              <button class="neu-btn sm danger">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="big">No guests yet</div>
+    Add your first guest to start sending invitations.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add guest modal -->
+<div class="modal-backdrop" id="modal-add-guest">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Add Guest</h3>
+      <button class="icon-btn" style="width:36px;height:36px;" onclick="closeModal('modal-add-guest')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="add">
+      <div class="form-row">
+        <label class="f-label">Full name *</label>
+        <input class="neu-input" type="text" name="name" required placeholder="e.g. Mama Asha">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Phone (255...)</label>
+        <input class="neu-input" type="text" name="phone" placeholder="0712 345 678">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Email</label>
+        <input class="neu-input" type="email" name="email" placeholder="guest@example.com">
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="f-label">Category</label>
+          <input class="neu-input" type="text" name="category" placeholder="e.g. Family, Friend">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Seats</label>
+          <input class="neu-input" type="number" name="seats" min="1" value="1">
+        </div>
+      </div>
+      <button type="submit" class="neu-btn primary block">Add Guest</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

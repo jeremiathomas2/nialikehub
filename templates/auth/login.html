@@ -1,0 +1,98 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_theme_init.html" %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in - {{ brand.app_name }}</title>
+  <link rel="icon" href="{% static 'img/logo.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/nialike.css' %}?v=9">
+</head>
+<body>
+<div class="auth-page">
+  <button type="button" class="icon-btn auth-theme" onclick="toggleTheme()" aria-label="Toggle theme"><span class="js-theme-icon"></span></button>
+
+  <div class="auth-wrap">
+
+    <aside class="auth-hero">
+      <div class="auth-hero-brand">
+        <img src="{% static 'img/logo.png' %}" alt="{{ brand.app_name }}">
+        <h2>{{ brand.app_name }}</h2>
+      </div>
+      <p class="auth-hero-tag">Digital invitations, guests, pledges &amp; payments - every celebration, beautifully organised.</p>
+      <ul class="auth-features">
+        <li class="auth-feature">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+          <div><b>Beautiful invitations</b><span>Create &amp; share digital invites in minutes.</span></div>
+        </li>
+        <li class="auth-feature">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <div><b>Guest management</b><span>Track RSVPs and attendance effortlessly.</span></div>
+        </li>
+        <li class="auth-feature">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
+          <div><b>Pledges &amp; payments</b><span>Collect, record and reconcile with ease.</span></div>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-brand">
+        <img src="{% static 'img/logo.png' %}" alt="{{ brand.app_name }}">
+        <h1>{{ brand.app_name }}</h1>
+      </div>
+
+      <div class="neu-card auth-card-box">
+        <p class="eyebrow">Member access</p>
+        <h2 class="auth-title">Welcome back</h2>
+        <p class="auth-sub">Sign in to continue planning your events.</p>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert {{ message.level_tag }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" class="auth-form" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert error">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+          <div class="form-row">
+            <label class="f-label" for="{{ form.email.id_for_label }}">Email address</label>
+            <div class="input-wrap has-icon">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+              {{ form.email }}
+            </div>
+            {% for e in form.email.errors %}<div class="form-hint danger">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-row">
+            <label class="f-label" for="{{ form.password.id_for_label }}">Password</label>
+            <div class="input-wrap has-icon">
+              <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+              {{ form.password }}
+              <button type="button" class="pw-toggle" data-toggle-password aria-label="Show password">
+                <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+            {% for e in form.password.errors %}<div class="form-hint danger">{{ e }}</div>{% endfor %}
+          </div>
+
+          <button type="submit" class="neu-btn primary block auth-submit">Sign In</button>
+        </form>
+
+        <div class="auth-alt">New here? <a href="{% url 'accounts:register' %}">Create an account</a></div>
+      </div>
+
+      <p class="auth-copy">&copy; {% now "Y" %} {{ brand.app_name }}. All rights reserved.</p>
+    </main>
+
+  </div>
+</div>
+<script src="{% static 'js/nialike.js' %}?v=9"></script>
+</body>
+</html>

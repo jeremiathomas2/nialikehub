@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}All Events - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}Events{% endblock %}
+{% block page_title %}All Events{% endblock %}
+
+{% block content %}
+<div class="toolbar" data-chip-group>
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+    <input type="text" placeholder="Search events..." data-search-rows="#events-table">
+  </div>
+  <button class="chip active" data-filter="all">All</button>
+  <button class="chip" data-filter="draft">Drafts</button>
+  <button class="chip" data-filter="published">Published</button>
+  <button class="chip" data-filter="closed">Closed</button>
+  <a class="neu-btn primary sm" href="{% url 'events:create' %}" style="margin-left:auto;">+ New Event</a>
+</div>
+
+<div class="neu-card table-wrap" data-chip-rows>
+  {% if rows %}
+  <table class="neu-table" id="events-table">
+    <thead>
+      <tr><th>Event</th><th>Date</th><th>Guests</th><th>RSVP</th><th>Collected</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr class="row-link" data-href="{% url 'events:detail' r.obj.pk %}" data-status="{{ r.obj.status }}">
+        <td>
+          <b>{{ r.obj.title }}</b><br>
+          <span class="small muted">{{ r.obj.get_event_type_display }}</span>
+        </td>
+        <td class="nowrap">{{ r.obj.event_date|date:"d M Y" }}<br><span class="small muted">{{ r.obj.start_time|time:"H:i" }}</span></td>
+        <td>{{ r.guests }}</td>
+        <td>{{ r.rsvp }}</td>
+        <td class="nowrap">{{ r.collected|money }}</td>
+        <td><span class="badge {{ r.obj.status|status_badge }}"><span class="dot"></span>{{ r.obj.status|status_label }}</span></td>
+        <td><a class="neu-btn sm" href="{% url 'events:detail' r.obj.pk %}">Manage</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="big">No events yet</div>
+    Click "New Event" to create your first invitation.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

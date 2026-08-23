@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Messages - {{ event.title }} - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}{{ event.title }}{% endblock %}
+{% block page_title %}Templates &amp; Logs{% endblock %}
+
+{% block content %}
+<div class="two-col mb">
+  <div class="neu-card">
+    <h3 class="card-title mb">Send Message</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="send">
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="f-label">Channel</label>
+          <select class="neu-input" name="channel">
+            <option value="sms">SMS (NextSMS)</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">Audience</label>
+          <select class="neu-input" name="target" id="msg-target">
+            <option value="all">All guests with phone</option>
+            <option value="single">Single guest</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">Guest</label>
+          <select class="neu-input" name="guest_id">
+            <option value="">- Select guest -</option>
+            {% for g in guests %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Message *</label>
+        <textarea class="neu-input" id="id_message" name="message" required placeholder="Dear {{'{{'}}guest_name}}, you are invited to {{'{{'}}event_title}}..."></textarea>
+        <p class="form-hint">Placeholders: {{'{{'}}guest_name}} - {{'{{'}}event_title}} - {{'{{'}}event_date}} - {{'{{'}}venue}} - {{'{{'}}invite_link}}</p>
+      </div>
+      <button type="submit" class="neu-btn primary">Queue Messages</button>
+    </form>
+
+    <h3 class="card-title mt mb">Message Templates</h3>
+    {% if templates %}
+      {% for t in templates %}
+      <div class="spread" style="padding:9px 0;border-bottom:1px dashed var(--line);">
+        <div>
+          <b>{{ t.name }}</b> <span class="badge b-muted"><span class="dot"></span>{{ t.channel }}</span><br>
+          <span class="small muted">{{ t.body|truncatechars:80 }}</span>
+        </div>
+        <button type="button" class="neu-btn sm" data-template-body="#id_message" data-body="{{ t.body }}">Use</button>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="small muted">No templates yet - save your first one below.</p>
+    {% endif %}
+
+    <form method="post" class="mt">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="template_create">
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="f-label">Template name</label>
+          <input class="neu-input" type="text" name="name" required placeholder="e.g. Invitation v1">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Channel</label>
+          <select class="neu-input" name="channel">
+            <option value="sms">SMS</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Body</label>
+        <textarea class="neu-input" name="body" style="min-height:70px;" required></textarea>
+      </div>
+      <button type="submit" class="neu-btn sm">Save Template</button>
+    </form>
+  </div>
+
+  <div class="neu-card table-wrap">
+    <h3 class="card-title mb">Delivery Log</h3>
+    {% if logs %}
+    <table class="neu-table" style="min-width:420px;">
+      <thead><tr><th>Guest</th><th>Ch.</th><th>Status</th><th>When</th></tr></thead>
+      <tbody>
+        {% for l in logs %}
+        <tr>
+          <td><b>{{ l.guest.name|default:"-" }}</b><br><span class="small muted">{{ l.content|truncatechars:44 }}</span></td>
+          <td>{{ l.channel }}</td>
+          <td><span class="badge {{ l.status|status_badge }}"><span class="dot"></span>{{ l.status|status_label }}</span></td>
+          <td class="small muted nowrap">{{ l.created_at|date:"d M H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="big">No messages yet</div>Queued messages appear here with delivery status.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

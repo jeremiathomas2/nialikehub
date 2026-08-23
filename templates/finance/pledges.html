@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Pledges - {{ event.title }} - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}{{ event.title }}{% endblock %}
+{% block page_title %}Pledge Tracking{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.3 12C19 16.4 12 21 12 21z"/></svg></div>
+    <div class="stat-value sm">{{ total_pledged|money }}</div>
+    <div class="stat-label">Total Pledged</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+    <div class="stat-value sm">{{ total_collected|money }}</div>
+    <div class="stat-label">Collected</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+    <div class="stat-value sm">{{ outstanding|money }}</div>
+    <div class="stat-label">Outstanding</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div>
+    <div class="stat-value">{{ overdue_count }}</div>
+    <div class="stat-label">Overdue</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <button class="neu-btn primary sm" style="margin-left:auto;" onclick="openModal('modal-add-pledge')">+ Assign Pledge</button>
+</div>
+
+<div class="neu-card table-wrap">
+  {% if rows %}
+  <table class="neu-table">
+    <thead>
+      <tr><th>Guest</th><th>Pledged</th><th>Progress</th><th>Due</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for p in rows %}
+      <tr>
+        <td><b>{{ p.guest.name }}</b>{% if p.note %}<br><span class="small muted">{{ p.note|truncatechars:60 }}</span>{% endif %}</td>
+        <td class="nowrap">{{ p.amount|money }}</td>
+        <td>
+          {% widthratio p.paid_amount p.amount 100 as pct %}
+          <div class="row-flex">
+            <div class="progress" style="flex:1;"><div class="progress-fill" style="width: {% if pct > 100 %}100{% else %}{{ pct|default:0 }}{% endif %}%;"></div></div>
+            <span class="small muted nowrap">{{ p.paid_amount|money }}</span>
+          </div>
+        </td>
+        <td class="nowrap">{{ p.due_date|date:"d M Y"|default:"-" }}</td>
+        <td><span class="badge {{ p.status|status_badge }}"><span class="dot"></span>{{ p.status|status_label }}</span></td>
+        <td>
+          <div class="cell-actions">
+            <form method="post" class="inline-form">{% csrf_token %}
+              <input type="hidden" name="op" value="record">
+              <input type="hidden" name="pledge_id" value="{{ p.pk }}">
+              <input class="neu-input" type="number" name="amount" min="1" step="any" placeholder="Amount">
+              <button class="neu-btn sm">Record</button>
+            </form>
+            <form method="post">{% csrf_token %}
+              <input type="hidden" name="op" value="status">
+              <input type="hidden" name="pledge_id" value="{{ p.pk }}">
+              <select class="neu-input" name="status" data-autosubmit>
+                {% for s in statuses %}<option value="{{ s }}" {% if p.status == s %}selected{% endif %}>{{ s|status_label }}</option>{% endfor %}
+              </select>
+            </form>
+            {% if p.guest.phone %}
+            <form method="post">{% csrf_token %}
+              <input type="hidden" name="op" value="remind">
+              <input type="hidden" name="pledge_id" value="{{ p.pk }}">
+              <button class="neu-btn sm">Remind</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="big">No pledges yet</div>
+    Assign a pledge to a guest to start tracking contributions.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Assign pledge modal -->
+<div class="modal-backdrop" id="modal-add-pledge">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Assign Pledge</h3>
+      <button class="icon-btn" style="width:36px;height:36px;" onclick="closeModal('modal-add-pledge')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="add">
+      <div class="form-row">
+        <label class="f-label">Guest *</label>
+        <select class="neu-input" name="guest_id" required>
+          <option value="">- Select guest -</option>
+          {% for g in guests %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Amount ({{ brand.currency }}) *</label>
+        <input class="neu-input" type="number" name="amount" min="1" step="any" required placeholder="50000">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Due date</label>
+        <input class="neu-input" type="date" name="due_date">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Note</label>
+        <textarea class="neu-input" name="note" style="min-height:70px;" placeholder="Optional note..."></textarea>
+      </div>
+      <button type="submit" class="neu-btn primary block">Assign Pledge</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

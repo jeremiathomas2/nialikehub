@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Create Event - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}Events{% endblock %}
+{% block page_title %}Create New Event{% endblock %}
+
+{% block content %}
+<div class="neu-card" style="max-width:860px;">
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="f-label">Event title *</label>
+        <input class="neu-input" type="text" name="title" required placeholder="e.g. Amina &amp; Juma Wedding">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Event type</label>
+        <select class="neu-input" name="event_type">
+          {% for v, l in types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Event date *</label>
+        <input class="neu-input" type="date" name="event_date" required>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Start time</label>
+        <input class="neu-input" type="time" name="start_time" value="10:00">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Venue</label>
+        <input class="neu-input" type="text" name="venue" placeholder="e.g. Golden Rose Gardens">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Address / Map note</label>
+        <input class="neu-input" type="text" name="address" placeholder="e.g. Bagamoyo Rd, Dar es Salaam">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Primary color</label>
+        <input class="neu-input" type="color" name="primary_color" value="#1c3a2e">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Accent color</label>
+        <input class="neu-input" type="color" name="accent_color" value="#b98a1d">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="f-label">Invitation message</label>
+      <textarea class="neu-input" name="description" placeholder="Write the invitation text guests will see on the public page..."></textarea>
+    </div>
+    <div class="row-flex mt">
+      <button type="submit" name="op" value="draft" class="neu-btn">Save as Draft</button>
+      <button type="submit" name="op" value="publish" class="neu-btn primary">Save &amp; Publish</button>
+      <a class="neu-btn danger" href="{% url 'events:list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

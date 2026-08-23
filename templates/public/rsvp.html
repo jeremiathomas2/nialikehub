@@ -1,0 +1,62 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_theme_init.html" %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSVP - {{ guest.event.title }}</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/nialike.css' %}?v=9">
+<style>
+  .public-page { background: linear-gradient(160deg, {{ guest.event.primary_color }} 0%, {{ guest.event.accent_color }} 130%); }
+</style>
+</head>
+<body>
+<div class="public-page">
+  <div class="event-box" style="margin-top:0;">
+    <img class="public-logo" src="{% static 'img/logo.png' %}" alt="">
+    <h2 style="font-family:var(--font-display);margin-bottom:6px;">Hello, {{ guest.name }}!</h2>
+    <p class="muted small mb">Will you attend <b>{{ guest.event.title }}</b>?</p>
+
+    <div class="eb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg>
+      {{ guest.event.event_date|date:"l, d F Y" }} - {{ guest.event.start_time|time:"H:i" }}
+    </div>
+    {% if guest.event.venue %}
+    <div class="eb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      {{ guest.event.venue }}
+    </div>
+    {% endif %}
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {{ message.level_tag }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    {% if guest.invitation_status == 'rsvp_yes' %}
+      <div class="mt"><span class="badge b-green"><span class="dot"></span>You confirmed attendance - thank you!</span></div>
+    {% elif guest.invitation_status == 'rsvp_no' %}
+      <div class="mt"><span class="badge b-red"><span class="dot"></span>You declined - you can change below.</span></div>
+    {% endif %}
+
+    <form method="post" action="{% url 'events:rsvp_submit' guest.rsvp_token %}">
+      {% csrf_token %}
+      <div class="rsvp-actions">
+        <button type="submit" name="choice" value="yes" class="neu-btn primary">Yes, I'll be there</button>
+        <button type="submit" name="choice" value="no" class="neu-btn danger">Sorry, can't make it</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="share-row">
+    <a class="neu-btn" href="{% url 'events:public_event' guest.event.public_token %}">View Invitation</a>
+  </div>
+
+  <div class="public-foot">Powered by {{ brand.app_name }}</div>
+</div>
+<script src="{% static 'js/nialike.js' %}?v=9"></script>
+</body>
+</html>

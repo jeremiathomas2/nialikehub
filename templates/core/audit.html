@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Audit Log - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}Administration{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="neu-card table-wrap">
+  {% if rows %}
+  <table class="neu-table">
+    <thead>
+      <tr><th>When</th><th>User</th><th>Action</th><th>Module</th><th>Details</th></tr>
+    </thead>
+    <tbody>
+      {% for l in rows %}
+      <tr>
+        <td class="small muted nowrap">{{ l.created_at|date:"d M Y, H:i" }}</td>
+        <td>{{ l.actor_name }}</td>
+        <td><span class="badge b-blue"><span class="dot"></span>{{ l.action|status_label }}</span></td>
+        <td>{{ l.entity|default:"-" }}</td>
+        <td class="small mono">{{ l.meta_json|default:""|truncatechars:90 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="big">No audit entries yet</div></div>
+  {% endif %}
+</div>
+{% endblock %}

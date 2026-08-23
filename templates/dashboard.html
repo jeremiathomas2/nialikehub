@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Dashboard - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}{{ page_eyebrow }}{% endblock %}
+{% block page_title %}Hello, {{ request.user.name|default:"there" }} {% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  {% for label, value in stats.items %}
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></div>
+    <div class="stat-value">{{ value }}</div>
+    <div class="stat-label">{{ label }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.3 12C19 16.4 12 21 12 21z"/></svg></div>
+    <div class="stat-value sm">{{ pledged|money }}</div>
+    <div class="stat-label">Total Pledged</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div>
+    <div class="stat-value sm">{{ collected|money }}</div>
+    <div class="stat-label">Total Collected</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+    <div class="stat-value sm">{{ outstanding|money }}</div>
+    <div class="stat-label">Outstanding</div>
+  </div>
+</div>
+
+<div class="quick-grid mb">
+  <a class="quick-card" href="{% url 'events:create' %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>Create Event
+  </a>
+  {% if nav_event %}
+  <a class="quick-card" href="{% url 'events:guests' nav_event.pk %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/></svg></span>Add Guests
+  </a>
+  <a class="quick-card" href="{% url 'finance:payments' %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>Payments
+  </a>
+  <a class="quick-card" href="{% if nav_event %}{% url 'messaging:messages' nav_event.pk %}{% else %}{% url 'events:list' %}{% endif %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.6 9.6 0 0 1-3.2-.6L3 21l1.7-4.6A8.2 8.2 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 9 8.4z"/></svg></span>Send Message
+  </a>
+  <a class="quick-card" href="{% if nav_event %}{% url 'messaging:cards' nav_event.pk %}{% else %}{% url 'events:list' %}{% endif %}">
+    <span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></span>WhatsApp Card
+  </a>
+  {% endif %}
+</div>
+
+<div class="two-col">
+  <div class="neu-card">
+    <div class="card-head">
+      <h3 class="card-title">Collections - last 6 months</h3>
+      <span class="badge b-green"><span class="dot"></span>{{ brand.currency }}</span>
+    </div>
+    <div class="bar-chart">
+      {% for m in chart %}
+      <div class="bar-col">
+        <div class="bar" style="height: {{ m.height }}%; min-height: {% if m.value > 0 %}6{% else %}2{% endif %}px;" title="{{ m.label }}: {{ m.value|money }}"></div>
+        <span>{{ m.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="neu-card">
+    <div class="card-head"><h3 class="card-title">Recent activity</h3></div>
+    {% if recent %}
+      {% for item in recent %}
+      <div class="activity-item">
+        <span class="ai-dot"></span>
+        <div>
+          {% if item.action %}
+            <p>{{ item.action|status_label }} - {{ item.actor_name }}</p>
+            <span>{{ item.created_at|date:"d M Y, H:i" }}</span>
+          {% else %}
+            <p><a href="{% url 'events:detail' item.pk %}">{{ item.title }}</a></p>
+            <span>{{ item.event_date|date:"d M Y" }} - {{ item.status|status_label }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="big">Nothing yet</div>
+        Create your first event to get started.
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

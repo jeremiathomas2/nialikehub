@@ -1,0 +1,56 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_theme_init.html" %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ event.title }} - Invitation</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/nialike.css' %}?v=9">
+<style>
+  .public-page { background: linear-gradient(160deg, {{ event.primary_color }} 0%, {{ event.accent_color }} 130%); }
+</style>
+</head>
+<body>
+<div class="public-page">
+  <div class="public-hero" style="background:rgba(0,0,0,0.18);">
+    <img class="public-logo" src="{% static 'img/logo.png' %}" alt="">
+    <div class="wa-tag">You are invited</div>
+    <h1>{{ event.title }}</h1>
+    {% if event.description %}<p class="lead">{{ event.description }}</p>{% endif %}
+  </div>
+
+  <div class="event-box">
+    <div class="eb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg>
+      {{ event.event_date|date:"l, d F Y" }}
+    </div>
+    <div class="eb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      {{ event.start_time|time:"H:i" }}
+    </div>
+    {% if event.venue %}
+    <div class="eb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      {{ event.venue }}{% if event.address %} - {{ event.address }}{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if event.description %}
+  <div class="quote-card">{{ event.description }}</div>
+  {% endif %}
+
+  <div class="share-row">
+    <button type="button" class="neu-btn" data-copy-text="{{ share_url }}">Copy Link</button>
+    <a class="neu-btn primary" href="https://wa.me/?text={{ share_url|urlencode }}" target="_blank">Share on WhatsApp</a>
+  </div>
+
+  <div class="public-foot">
+    Powered by {{ brand.app_name }}
+  </div>
+</div>
+<script src="{% static 'js/nialike.js' %}?v=9"></script>
+</body>
+</html>

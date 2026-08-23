@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Gateway &amp; System - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}{{ page_eyebrow }}{% endblock %}
+{% block page_title %}Gateway &amp; System Settings{% endblock %}
+
+{% block content %}
+<div class="two-col mb">
+  <div class="neu-card">
+    <div class="card-head">
+      <h3 class="card-title">PalmPesa - Mobile Money</h3>
+      <span class="badge {% if pc.ENABLED %}b-green{% else %}b-muted{% endif %}"><span class="dot"></span>{% if pc.ENABLED %}Enabled{% else %}Disabled{% endif %}</span>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="group" value="palmpesa">
+      <div class="form-row">
+        <label class="f-label">Enable</label>
+        <select class="neu-input" name="enabled">
+          <option value="1" {% if pc.ENABLED %}selected{% endif %}>Yes</option>
+          <option value="0" {% if not pc.ENABLED %}selected{% endif %}>No</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Base URL</label>
+        <input class="neu-input" type="text" name="base_url" value="{{ pc.BASE_URL }}">
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="f-label">Token path</label>
+          <input class="neu-input" type="text" name="token_path" value="{{ pc.TOKEN_PATH }}">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Initiate path</label>
+          <input class="neu-input" type="text" name="initiate_path" value="{{ pc.INITIATE_PATH }}">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Status path</label>
+          <input class="neu-input" type="text" name="status_path" value="{{ pc.STATUS_PATH }}">
+        </div>
+        <div class="form-row">
+          <label class="f-label">User ID</label>
+          <input class="neu-input" type="text" name="user_id" value="{{ pc.USER_ID }}" placeholder="Set to update">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="f-label">API token</label>
+        <input class="neu-input" type="password" name="api_token" placeholder="Set to update">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Webhook secret</label>
+        <input class="neu-input" type="text" name="webhook_secret" placeholder="Set to update">
+        <p class="form-hint">Webhook endpoint: <span class="mono">{{ brand.app_url }}/webhook/palmpesa/</span></p>
+      </div>
+      <button type="submit" class="neu-btn primary">Save PalmPesa Settings</button>
+    </form>
+  </div>
+
+  <div class="neu-card">
+    <div class="card-head">
+      <h3 class="card-title">NextSMS - Messaging</h3>
+      <span class="badge {% if ns.ENABLED %}b-green{% else %}b-muted{% endif %}"><span class="dot"></span>{% if ns.ENABLED %}Enabled{% else %}Disabled{% endif %}</span>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="group" value="nextsms">
+      <div class="form-row">
+        <label class="f-label">Enable</label>
+        <select class="neu-input" name="enabled">
+          <option value="1" {% if ns.ENABLED %}selected{% endif %}>Yes</option>
+          <option value="0" {% if not ns.ENABLED %}selected{% endif %}>No</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Base URL</label>
+        <input class="neu-input" type="text" name="base_url" value="{{ ns.BASE_URL }}">
+        <p class="form-hint">Official NextSMS API: <span class="mono">https://messaging-service.co.tz</span></p>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Sender ID</label>
+        <input class="neu-input" type="text" name="sender_id" value="{{ ns.SENDER_ID }}">
+      </div>
+      <div class="form-row">
+        <label class="f-label">API key</label>
+        <input class="neu-input" type="password" name="api_key" placeholder="Set to update">
+        <p class="form-hint">Bearer token from NextSMS dashboard: Customer Info &rarr; Customization &rarr; API Keys.</p>
+      </div>
+      <button type="submit" class="neu-btn primary">Save NextSMS Settings</button>
+    </form>
+
+    <h3 class="card-title mt mb">Test SMS</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="group" value="test_sms">
+      <div class="form-row">
+        <label class="f-label">Recipient phone</label>
+        <input class="neu-input" type="text" name="phone" placeholder="e.g. 0712345678 or 255712345678" required>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Message</label>
+        <textarea class="neu-input" name="message" rows="3" maxlength="480" required>Test message from {{ brand.app_name|default:"Nialike" }}</textarea>
+        <p class="form-hint">Sends immediately via NextSMS using the saved settings above.</p>
+      </div>
+      <button type="submit" class="neu-btn">Send Test SMS</button>
+    </form>
+
+    <h3 class="card-title mt mb">General</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="group" value="general">
+      <div class="form-row">
+        <label class="f-label">Brand name</label>
+        <input class="neu-input" type="text" name="brand_name" value="{{ brand_name }}">
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="f-label">Default primary color</label>
+          <input class="neu-input" type="color" name="default_primary_color" value="{{ primary_color|default:'#1C3A2E' }}">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Default accent color</label>
+          <input class="neu-input" type="color" name="default_accent_color" value="{{ accent_color|default:'#FFFDD0' }}">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Footer text</label>
+        <input class="neu-input" type="text" name="footer_text" value="{{ footer_text }}">
+      </div>
+      <button type="submit" class="neu-btn primary">Save General Settings</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

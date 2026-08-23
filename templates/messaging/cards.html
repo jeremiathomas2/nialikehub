@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}WhatsApp Cards - {{ event.title }} - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}{{ event.title }}{% endblock %}
+{% block page_title %}Card Gallery{% endblock %}
+
+{% block content %}
+<div class="two-col mb">
+  <div class="neu-card">
+    <h3 class="card-title mb">Create WhatsApp Card</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="create">
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="f-label">Card name</label>
+          <input class="neu-input" type="text" name="name" placeholder="Main Invitation" value="Main Invitation">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Style</label>
+          <select class="neu-input" name="style">
+            {% for v, l in styles %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">Headline</label>
+          <input class="neu-input" type="text" name="headline" value="{{ event.title }}">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Primary color</label>
+          <input class="neu-input" type="color" name="primary_color" value="{{ event.primary_color }}">
+        </div>
+        <div class="form-row">
+          <label class="f-label">Accent color</label>
+          <input class="neu-input" type="color" name="accent_color" value="{{ event.accent_color }}">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Message</label>
+        <textarea class="neu-input" name="message" placeholder="Text shown on the card / shared to WhatsApp...">{{ event.description|default:"" }}</textarea>
+      </div>
+      <label class="row-flex small" style="font-weight:700;">
+        <input type="checkbox" name="is_default" checked> Set as default card
+      </label>
+      <button type="submit" class="neu-btn primary mt">Save Card</button>
+    </form>
+  </div>
+
+  <div class="neu-card">
+    <h3 class="card-title mb">Share</h3>
+    <p class="small muted mb">Public invitation link for this event:</p>
+    <div class="share-box" style="background:var(--card);box-shadow:var(--shadow-in);">
+      <code>{{ public_url }}</code>
+      <button type="button" class="neu-btn sm" data-copy-text="{{ public_url }}">Copy</button>
+    </div>
+    <a class="neu-btn primary block mt" href="https://wa.me/?text={{ public_url|urlencode }}" target="_blank">Open in WhatsApp</a>
+    <p class="form-hint mt">Tip: paste the link into a WhatsApp status or broadcast list - the card preview below shows how it reads.</p>
+  </div>
+</div>
+
+<div class="wa-grid">
+  {% for c in cards %}
+  <div>
+    <div class="wa-card {{ c.style }}" style="{% if c.style == 'minimal' %}background:#faf7ee;color:{{ c.primary_color }};border-color:{{ c.accent_color }};{% else %}background:linear-gradient(150deg, {{ c.primary_color }}, {{ c.accent_color }});{% endif %}">
+      {% if c.is_default %}<span class="default-flag">DEFAULT</span>{% endif %}
+      <div class="wa-tag">You are invited</div>
+      <h4>{{ c.headline }}</h4>
+      <p>{{ c.message|truncatechars:180 }}</p>
+    </div>
+    <div class="row-flex mt" style="justify-content:center;">
+      {% if not c.is_default %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="op" value="set_default">
+        <input type="hidden" name="card_id" value="{{ c.pk }}">
+        <button class="neu-btn sm">Set Default</button>
+      </form>
+      {% endif %}
+      <button type="button" class="neu-btn sm" data-copy-text="{{ c.headline }} - {{ public_url }}">Copy Text</button>
+      <form method="post" data-confirm="Delete this card?">{% csrf_token %}
+        <input type="hidden" name="op" value="delete">
+        <input type="hidden" name="card_id" value="{{ c.pk }}">
+        <button class="neu-btn sm danger">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% empty %}
+  <div class="neu-card empty-state" style="grid-column:1/-1;">
+    <div class="big">No cards yet</div>
+    Create your first WhatsApp invitation card using the form above.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

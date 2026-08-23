@@ -1,0 +1,207 @@
+{% load static nialike_extras %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_theme_init.html" %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}{{ brand.app_name }}{% endblock %}</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/nialike.css' %}?v=10">
+</head>
+<body>
+<div class="layout">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img src="{% static 'img/logo.png' %}" alt="{{ brand.app_name }}">
+      <div>
+        <div class="brand-name">{{ brand.app_name }}</div>
+        <div class="small muted">Invitations &amp; Events</div>
+      </div>
+    </div>
+
+    <a class="nav-item {% if active == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span>Dashboard</span>
+    </a>
+
+    <div class="nav-group {% if active == 'events' %}open current{% endif %}">
+      <button type="button" class="nav-group-head" onclick="toggleNavGroup(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg>
+        <span>Events</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="{% url 'events:list' %}">All Events</a>
+        <a href="{% url 'events:create' %}">Create Event</a>
+      </div>
+    </div>
+
+    <div class="nav-group {% if active == 'guests' %}open current{% endif %}">
+      <button type="button" class="nav-group-head" onclick="toggleNavGroup(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 15.2c2.6.3 4.6 1.7 5.3 4.3"/></svg>
+        <span>Guests</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="{% if nav_event %}{% url 'events:guests' nav_event.pk %}{% else %}{% url 'events:list' %}{% endif %}">All Guests</a>
+      </div>
+    </div>
+
+    <div class="nav-group {% if active == 'pledges' %}open current{% endif %}">
+      <button type="button" class="nav-group-head" onclick="toggleNavGroup(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.3 12C19 16.4 12 21 12 21z"/></svg>
+        <span>Pledges</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="{% if nav_event %}{% url 'finance:pledges' nav_event.pk %}{% else %}{% url 'events:list' %}{% endif %}">All Pledges</a>
+      </div>
+    </div>
+
+    <div class="nav-group {% if active == 'payments' %}open current{% endif %}">
+      <button type="button" class="nav-group-head" onclick="toggleNavGroup(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+        <span>Payments</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="{% url 'finance:payments' %}">Transactions</a>
+      </div>
+    </div>
+
+    <div class="nav-group {% if active == 'messages' or active == 'cards' %}open current{% endif %}">
+      <button type="button" class="nav-group-head" onclick="toggleNavGroup(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.6 9.6 0 0 1-3.2-.6L3 21l1.7-4.6A8.2 8.2 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 9 8.4z"/></svg>
+        <span>Messages</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="{% if nav_event %}{% url 'messaging:messages' nav_event.pk %}{% else %}{% url 'events:list' %}{% endif %}">Templates &amp; Logs</a>
+        <a href="{% if nav_event %}{% url 'messaging:cards' nav_event.pk %}{% else %}{% url 'events:list' %}{% endif %}">WhatsApp Cards</a>
+      </div>
+    </div>
+
+    {% if is_admin %}
+    <div class="nav-group {% if active == 'users' or active == 'settings' or active == 'audit' %}open current{% endif %}">
+      <button type="button" class="nav-group-head" onclick="toggleNavGroup(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Administration</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="{% url 'accounts:approvals' %}">User Approvals</a>
+        <a href="{% url 'core:gateway' %}">Gateway &amp; System</a>
+        <a href="{% url 'core:audit' %}">Audit Log</a>
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="row-flex">
+        <button class="icon-btn hamburger" id="menuToggle" type="button" onclick="toggleSidebar()" aria-label="Toggle menu" aria-controls="sidebar" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div>
+          <div class="eyebrow">{% block eyebrow %}{{ brand.app_name }}{% endblock %}</div>
+          <h1>{% block page_title %}Welcome{% endblock %}</h1>
+        </div>
+      </div>
+      <div class="row-flex">
+        <button class="icon-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+          <span class="js-theme-icon"></span>
+        </button>
+        <button class="icon-btn" onclick="openDrawer()" aria-label="Appearance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2v-1c0-.6.4-1 1-1h2a4 4 0 0 0 4-4c0-6.1-4.9-12-9-12z"/></svg>
+        </button>
+        <div class="user-menu">
+          <button type="button" class="user-pill" onclick="toggleUserMenu()" aria-haspopup="true" aria-expanded="false">
+            <span class="avatar">{{ request.user.name|initials|default:"U" }}</span>
+            <span class="pill-name">{{ request.user.name|default:request.user.email }}</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="user-dropdown">
+            <div class="ud-head">
+              <b>{{ request.user.name|default:request.user.email }}</b>
+              <span>{{ request.user.email }}</span>
+            </div>
+            <a class="ud-item" href="{% url 'accounts:profile' %}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c.9-4 4.2-6 8-6s7.1 2 8 6"/></svg>
+              My Profile
+            </a>
+            {% if is_admin %}
+            <a class="ud-item" href="{% url 'accounts:approvals' %}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8l2 2-4 4-2-2"/></svg>
+              User Approvals
+            </a>
+            {% endif %}
+            <div class="ud-sep"></div>
+            <form method="post" action="{% url 'accounts:logout' %}" style="margin:0;">{% csrf_token %}
+              <button type="submit" class="ud-item ud-danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Logout
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- ============ Scrim / Drawer / Toasts ============ -->
+<div class="scrim" id="scrim" onclick="closeDrawer();closeSidebar();"></div>
+
+<aside class="drawer" id="drawer">
+  <div class="spread mb">
+    <h3>Appearance</h3>
+    <button class="icon-btn" style="width:36px;height:36px;" onclick="closeDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-section">
+    <label class="f-label">Mode</label>
+    <div class="toggle-row">
+      <span>Dark mode</span>
+      <button class="switch" id="drawerThemeToggle" onclick="toggleTheme()"></button>
+    </div>
+  </div>
+  <div class="drawer-section">
+    <label class="f-label">Accent color</label>
+    <div class="swatches">
+      <div class="swatch sel" style="background:#1c3a2e" onclick="setVar('--accent','#1c3a2e',this)"></div>
+      <div class="swatch" style="background:#7b4b2a" onclick="setVar('--accent','#7b4b2a',this)"></div>
+      <div class="swatch" style="background:#34506b" onclick="setVar('--accent','#34506b',this)"></div>
+      <div class="swatch" style="background:#5b3a64" onclick="setVar('--accent','#5b3a64',this)"></div>
+      <div class="swatch" style="background:#8a5a0b" onclick="setVar('--accent','#8a5a0b',this)"></div>
+    </div>
+  </div>
+  <div class="drawer-section">
+    <label class="f-label">Display font</label>
+    <select class="neu-input" onchange="setFont(this.value)">
+      <option value="'Nunito Sans', sans-serif">Nunito Sans (default)</option>
+      <option value="'Fraunces', Georgia, serif">Fraunces</option>
+      <option value="Georgia, serif">Georgia</option>
+    </select>
+  </div>
+  <button class="neu-btn block danger" onclick="resetAppearance()">Reset appearance</button>
+</aside>
+
+<div class="toast-stack">
+  {% for message in messages %}
+    <div class="toast auto t-{{ message.level_tag }}">{{ message }}</div>
+  {% endfor %}
+</div>
+
+<script src="{% static 'js/nialike.js' %}?v=10"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
