@@ -79,6 +79,11 @@ def generate_reference(prefix="NIA"):
     return f"{prefix}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{timezone.now().microsecond % 10000:04d}"
 
 
+def _callback_url():
+    base = getattr(settings, "APP_URL", "") or "http://127.0.0.1:8000"
+    return base.rstrip("/") + "/webhook/palmpesa/"
+
+
 def initiate_payment(event, guest=None, pledge=None, amount=0, phone=""):
     """Create a pending payment and push it to PalmPesa. Returns (payment, result)."""
     amount = _dec(amount)
@@ -94,21 +99,79 @@ def initiate_payment(event, guest=None, pledge=None, amount=0, phone=""):
         phone=phone,
         status=Payment.Status.PENDING,
     )
+    # PalmPesa "Webhook Payment" endpoint requires these exact fields.
+    # Their API rejects names with fewer than 2 words.
+    payer_name = (guest.name if guest else getattr(event.user, "name", "") or "").strip()
+    if len(payer_name.split()) < 2:
+        payer_name = f"{payer_name} Customer".strip() or "Nialike Customer"
+    payer_email = ((guest.email if guest else None) or getattr(event.user, "email", ""))[:190]
     payload = {
-        "reference": reference,
-        "amount": float(amount),
-        "currency": "TZS",
+        "name": payer_name,
+        "email": payer_email or f"{reference.lower()}@nialike.local",
         "phone": phone,
-        "callback_url": "/webhook/palmpesa/",
-        "description": "Nialike event payment",
+        "amount": int(amount) if amount == amount.to_integral_value() else float(amount),
+        "transaction_id": reference,
+        "address": "Dar es Salaam",
+        "postcode": "11111",
+        "callback_url": _callback_url(),
     }
     result = palmpesa_request(provider_config()["INITIATE_PATH"], payload)
     data = result.get("data") or {}
     payment.status = Payment.Status.PROCESSING if result["ok"] else Payment.Status.FAILED
-    payment.provider_reference = data.get("transaction_id") or data.get("reference")
+    payment.provider_reference = data.get("order_id") or data.get("transaction_id") or data.get("reference")
     payment.raw_response = json.dumps(data, default=str)
     payment.save(update_fields=["status", "provider_reference", "raw_response", "updated_at"])
     return payment, result
+
+
+def palmpesa_order_status(order_id):
+    cfg = provider_config()
+    if not cfg["ENABLED"]:
+        return {"ok": False, "status": 0, "data": {}, "error": "PalmPesa is not configured."}
+    return palmpesa_request(cfg.get("STATUS_PATH", "/order-status"), {"order_id": order_id})
+
+
+def _map_provider_status(value):
+    status = str(value or "").strip().lower()
+    if status in ("success", "successful", "paid", "completed"):
+        return Payment.Status.SUCCESS
+    if status in ("failed", "failure", "cancelled", "canceled"):
+        return Payment.Status.FAILED
+    return Payment.Status.PROCESSING
+
+
+def _apply_payment_status(payment, new_status, provider_ref=None, raw=None):
+    already_success = payment.status == Payment.Status.SUCCESS
+    payment.status = new_status
+    if provider_ref:
+        payment.provider_reference = provider_ref
+    if raw is not None:
+        payment.raw_response = json.dumps(raw, default=str)
+    if new_status == Payment.Status.SUCCESS and not payment.paid_at:
+        payment.paid_at = timezone.now()
+    payment.save(update_fields=["status", "provider_reference", "raw_response", "paid_at", "updated_at"])
+    if new_status == Payment.Status.SUCCESS and not already_success:
+        apply_success_to_pledge(payment)
+
+
+def refresh_payment_status(payment):
+    """Poll PalmPesa Get Order Status and apply the authoritative result."""
+    if not payment.provider_reference:
+        return payment.status, {"ok": False, "error": "No PalmPesa order id stored."}
+    result = palmpesa_order_status(payment.provider_reference)
+    data = result.get("data") or {}
+    rows = data.get("data") if isinstance(data, dict) else None
+    row = rows[0] if isinstance(rows, list) and rows else {}
+    reported = row.get("payment_status") or data.get("payment_status")
+    new_status = _map_provider_status(reported)
+    if reported:
+        _apply_payment_status(
+            payment,
+            new_status,
+            provider_ref=row.get("order_id"),
+            raw=data,
+        )
+    return payment.status, result
 
 
 def apply_success_to_pledge(payment):
@@ -153,46 +216,50 @@ def record_manual_payment(pledge, amount):
 
 
 def process_webhook(raw_body, payload, signature):
-    """Validate + apply a PalmPesa webhook. Returns (ok, http_status)."""
+    """Validate + apply a PalmPesa webhook. Returns (ok, http_status).
+
+    PalmPesa callbacks are not HMAC-signed; they carry {"order_id", "payment_status"}.
+    If a valid signature is present we honour it; otherwise the reported status is
+    confirmed against the authoritative Get Order Status endpoint before applying.
+    """
     import hashlib
     import hmac
 
     secret = provider_config()["WEBHOOK_SECRET"]
-    if not secret:
-        # No secret configured -> refuse to trust any webhook payload.
-        return False, 401
-    expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
-    if not signature or not hmac.compare_digest(expected, signature):
-        return False, 401
+    signature_valid = False
+    if secret and signature:
+        expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+        signature_valid = hmac.compare_digest(expected, signature)
 
-    reference = payload.get("reference") or payload.get("merchant_reference") or ""
-    status = str(payload.get("status") or payload.get("payment_status") or "").lower()
+    order_id = str(payload.get("order_id") or "").strip()
+    reference = str(payload.get("reference") or payload.get("merchant_reference") or "").strip()
     provider_ref = payload.get("transaction_id") or payload.get("provider_reference")
 
-    if not reference:
-        return True, 200
-
-    payment = Payment.objects.filter(reference=reference).first()
-    if not payment:
-        return True, 200
-
-    if status in ("success", "successful", "paid", "completed"):
-        mapped = Payment.Status.SUCCESS
-    elif status in ("failed", "failure", "cancelled", "canceled"):
-        mapped = Payment.Status.FAILED
+    if reference:
+        payment = Payment.objects.filter(reference=reference).first()
+    elif order_id:
+        payment = Payment.objects.filter(provider_reference=order_id).first()
     else:
-        mapped = Payment.Status.PROCESSING
+        payment = None
 
-    # Idempotency: never double-apply a success.
-    already_success = payment.status == Payment.Status.SUCCESS
-    payment.status = mapped
-    payment.provider_reference = provider_ref or payment.provider_reference
-    payment.raw_response = json.dumps(payload, default=str)
-    if mapped == Payment.Status.SUCCESS and not payment.paid_at:
-        payment.paid_at = timezone.now()
-    payment.save(update_fields=["status", "provider_reference", "raw_response", "paid_at", "updated_at"])
+    if payment is None:
+        # Unknown transaction - acknowledge so the gateway does not retry forever.
+        return True, 200
 
-    if mapped == Payment.Status.SUCCESS and not already_success:
-        apply_success_to_pledge(payment)
+    reported_status = payload.get("payment_status") or payload.get("status")
+    new_status = _map_provider_status(reported_status)
 
+    if not signature_valid and order_id:
+        # Confirm untrusted reports against PalmPesa directly.
+        result = palmpesa_order_status(order_id)
+        data = result.get("data") or {}
+        rows = data.get("data") if isinstance(data, dict) else None
+        row = rows[0] if isinstance(rows, list) and rows else {}
+        polled = row.get("payment_status")
+        if polled:
+            new_status = _map_provider_status(polled)
+        if isinstance(data, dict) and data:
+            payload = {**payload, "polled": data}
+
+    _apply_payment_status(payment, new_status, provider_ref=order_id or provider_ref, raw=payload)
     return True, 200

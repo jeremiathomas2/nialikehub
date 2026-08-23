@@ -39,7 +39,7 @@
         </div>
       </div>
       <button type="submit" class="neu-btn primary">Send Payment Request</button>
-      <p class="form-hint mt">The customer receives a mobile-money prompt to approve.</p>
+      <p class="form-hint mt">The customer receives a mobile-money prompt to approve. PalmPesa enforces a minimum of TZS 500 per request.</p>
     </form>
   </div>
 
@@ -74,6 +74,13 @@
         <td><span class="badge {{ p.status|status_badge }}"><span class="dot"></span>{{ p.status|status_label }}</span></td>
         <td class="nowrap small muted">{{ p.created_at|date:"d M Y, H:i" }}</td>
         <td>
+          {% if p.provider == 'palmpesa' and p.status == 'processing' %}
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="op" value="check_status">
+            <input type="hidden" name="payment_id" value="{{ p.pk }}">
+            <button class="neu-btn sm">Check status</button>
+          </form>
+          {% endif %}
           {% if p.status == 'success' %}
           <form method="post" data-confirm="Mark this payment as refunded?">{% csrf_token %}
             <input type="hidden" name="op" value="refund_mark">

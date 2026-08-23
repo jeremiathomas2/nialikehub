@@ -123,8 +123,8 @@ PALMPESA = {
     "USER_ID": envv("PALMPESA_USER_ID"),
     "API_TOKEN": envv("PALMPESA_API_TOKEN"),
     "TOKEN_PATH": envv("PALMPESA_TOKEN_PATH", "/token"),
-    "INITIATE_PATH": envv("PALMPESA_INITIATE_PATH", "/payments/initiate"),
-    "STATUS_PATH": envv("PALMPESA_STATUS_PATH", "/payments/status"),
+    "INITIATE_PATH": envv("PALMPESA_INITIATE_PATH", "/palmpesa/initiate"),
+    "STATUS_PATH": envv("PALMPESA_STATUS_PATH", "/order-status"),
     "WEBHOOK_SECRET": envv("PALMPESA_WEBHOOK_SECRET"),
 }
 

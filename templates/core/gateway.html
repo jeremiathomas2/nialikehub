@@ -31,14 +31,16 @@
           <label class="f-label">Token path</label>
           <input class="neu-input" type="text" name="token_path" value="{{ pc.TOKEN_PATH }}">
         </div>
-        <div class="form-row">
-          <label class="f-label">Initiate path</label>
-          <input class="neu-input" type="text" name="initiate_path" value="{{ pc.INITIATE_PATH }}">
-        </div>
-        <div class="form-row">
-          <label class="f-label">Status path</label>
-          <input class="neu-input" type="text" name="status_path" value="{{ pc.STATUS_PATH }}">
-        </div>
+      <div class="form-row">
+        <label class="f-label">Initiate path</label>
+        <input class="neu-input" type="text" name="initiate_path" value="{{ pc.INITIATE_PATH }}">
+        <p class="form-hint">PalmPesa USSD push endpoint: <span class="mono">/palmpesa/initiate</span></p>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Status path</label>
+        <input class="neu-input" type="text" name="status_path" value="{{ pc.STATUS_PATH }}">
+        <p class="form-hint">Order status polling endpoint: <span class="mono">/order-status</span></p>
+      </div>
         <div class="form-row">
           <label class="f-label">User ID</label>
           <input class="neu-input" type="text" name="user_id" value="{{ pc.USER_ID }}" placeholder="Set to update">

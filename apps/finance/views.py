@@ -13,7 +13,12 @@ from django.views.decorators.csrf import csrf_exempt
 from apps.core.models import get_setting
 from apps.core.services import audit
 from apps.events.models import Event, Guest
-from apps.finance.services import initiate_payment, process_webhook, record_manual_payment
+from apps.finance.services import (
+    initiate_payment,
+    process_webhook,
+    record_manual_payment,
+    refresh_payment_status,
+)
 from apps.messaging.services import normalize_phone, queue_messages
 
 from .models import Payment, Pledge
@@ -155,6 +160,34 @@ def payments_view(request):
                 messages.success(request, "Payment request sent. Ask customer to complete the mobile-money prompt.")
             else:
                 messages.error(request, f"PalmPesa request failed: {result.get('error') or 'API error'}")
+            return redirect("finance:payments")
+        elif op == "check_status":
+            pid = int(request.POST.get("payment_id", 0))
+            scope = Payment.objects.select_related("event", "guest")
+            if not request.user.is_admin:
+                scope = scope.filter(event__user=request.user)
+            payment = scope.filter(pk=pid, provider="palmpesa").first()
+            if not payment:
+                messages.error(request, "Payment not found.")
+            else:
+                status, result = refresh_payment_status(payment)
+                data = result.get("data") or {}
+                err = result.get("error")
+                if status == Payment.Status.SUCCESS:
+                    messages.success(request, f"{payment.reference} confirmed as COMPLETED.")
+                    audit(request, "payment_status_polled", "payments", payment.pk, {"status": "COMPLETED"})
+                elif status == Payment.Status.FAILED:
+                    messages.error(request, f"{payment.reference} is FAILED on PalmPesa.")
+                    audit(request, "payment_status_polled", "payments", payment.pk, {"status": "FAILED"})
+                elif err:
+                    messages.error(request, f"Status check failed: {err}")
+                else:
+                    detail = ""
+                    if isinstance(data, dict):
+                        rows_ = data.get("data")
+                        if isinstance(rows_, list) and rows_:
+                            detail = str(rows_[0].get("payment_status") or "")
+                    messages.info(request, f"{payment.reference} is still {detail or 'PENDING'} on PalmPesa.")
             return redirect("finance:payments")
         elif op == "refund_mark":
             pid = int(request.POST.get("payment_id", 0))
