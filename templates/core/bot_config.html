@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}Chatbot Configuration - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}{{ page_eyebrow }}{% endblock %}
+{% block page_title %}Chatbot Configuration{% endblock %}
+
+{% block content %}
+<div class="two-col mb">
+
+  <div class="neu-card">
+    <div class="card-head">
+      <h3 class="card-title">Assistant</h3>
+      <span class="badge {% if enabled %}b-green{% else %}b-muted{% endif %}"><span class="dot"></span>{% if enabled %}Enabled{% else %}Disabled{% endif %}</span>
+    </div>
+    <p class="muted small mb">Controls the animated assistant shown to visitors on the sign-in and registration pages.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="group" value="settings">
+      <div class="form-row">
+        <label class="f-label">Enable assistant</label>
+        <select class="neu-input" name="enabled">
+          <option value="1" {% if enabled %}selected{% endif %}>Yes</option>
+          <option value="0" {% if not enabled %}selected{% endif %}>No</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Bot name</label>
+        <input class="neu-input" type="text" name="name" value="{{ bot_name }}" maxlength="60">
+      </div>
+      <div class="form-row">
+        <label class="f-label">Greeting message</label>
+        <textarea class="neu-input" name="greeting" rows="3" maxlength="400">{{ greeting }}</textarea>
+        <p class="form-hint">Shown when a visitor first opens the chat. Use <span class="mono">{app}</span> to insert the brand name.</p>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Attention bubble text</label>
+        <input class="neu-input" type="text" name="nudge" value="{{ nudge }}" maxlength="200">
+        <p class="form-hint">Pops up next to the bot after a few seconds. Leave blank to disable.</p>
+      </div>
+      <div class="form-row">
+        <label class="f-label">Quick replies</label>
+        <textarea class="neu-input" name="quick_replies" rows="4">{{ quick_replies }}</textarea>
+        <p class="form-hint">One suggestion per line, offered as clickable chips.</p>
+      </div>
+      <button type="submit" class="neu-btn primary">Save Assistant Settings</button>
+    </form>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="neu-card">
+      <div class="card-head">
+        <h3 class="card-title">Custom Q&amp;A</h3>
+        <span class="badge b-muted"><span class="dot"></span>{{ faqs.count }} item{{ faqs.count|pluralize }}</span>
+      </div>
+      <p class="muted small mb">Teach the bot new answers. Keywords are comma-separated words that trigger the reply; the question is matched too.</p>
+
+      {% for faq in faqs %}
+      <form method="post" class="faq-row">
+        {% csrf_token %}
+        <input type="hidden" name="group" value="faq_update">
+        <input type="hidden" name="id" value="{{ faq.pk }}">
+        <div class="faq-grid">
+          <div class="form-row faq-q">
+            <label class="f-label">Question</label>
+            <input class="neu-input" type="text" name="question" value="{{ faq.question }}" maxlength="200" required>
+          </div>
+          <div class="form-row faq-kw">
+            <label class="f-label">Keywords</label>
+            <input class="neu-input" type="text" name="keywords" value="{{ faq.keywords }}" maxlength="300" placeholder="e.g. cost, price, fee">
+          </div>
+          <div class="form-row faq-order">
+            <label class="f-label">Order</label>
+            <input class="neu-input" type="number" name="order" value="{{ faq.order }}" min="0" max="999">
+          </div>
+          <label class="faq-on">
+            <input type="checkbox" name="is_enabled" value="1" {% if faq.is_enabled %}checked{% endif %}>
+            <span>Enabled</span>
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="f-label">Answer</label>
+          <textarea class="neu-input" name="answer" rows="2" maxlength="2000" required>{{ faq.answer }}</textarea>
+        </div>
+        <div class="row-flex spread">
+          <button type="submit" class="neu-btn primary">Save</button>
+        </div>
+      </form>
+      <form method="post" data-confirm="Delete this Q&amp;A entry?">
+        {% csrf_token %}
+        <input type="hidden" name="group" value="faq_delete">
+        <input type="hidden" name="id" value="{{ faq.pk }}">
+        <button type="submit" class="neu-btn danger sm">Delete</button>
+      </form>
+      {% empty %}
+      <p class="muted small">No custom entries yet - add one below.</p>
+      {% endfor %}
+    </div>
+
+    <div class="neu-card">
+      <h3 class="card-title mb">Add new Q&amp;A</h3>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="group" value="faq_add">
+        <div class="form-grid">
+          <div class="form-row">
+            <label class="f-label">Question</label>
+            <input class="neu-input" type="text" name="question" maxlength="200" required placeholder="e.g. How much does it cost?">
+          </div>
+          <div class="form-row">
+            <label class="f-label">Keywords</label>
+            <input class="neu-input" type="text" name="keywords" maxlength="300" placeholder="cost, price, fee">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="f-label">Answer</label>
+          <textarea class="neu-input" name="answer" rows="3" maxlength="2000" required placeholder="What should the bot reply?"></textarea>
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label class="f-label">Order</label>
+            <input class="neu-input" type="number" name="order" value="0" min="0" max="999">
+          </div>
+          <label class="faq-on" style="align-self:end;padding-bottom:12px;">
+            <input type="checkbox" name="is_enabled" value="1" checked>
+            <span>Enabled</span>
+          </label>
+        </div>
+        <button type="submit" class="neu-btn">Add Q&amp;A</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

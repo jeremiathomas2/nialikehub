@@ -1,19 +1,23 @@
 import json
+import re
+import time
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce
-from django.shortcuts import redirect, render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.accounts.models import User
 from apps.events.models import Event, Guest
 from apps.messaging.models import MessageLog
 from apps.core.services import audit
 
-from .models import AuditLog, get_setting, set_setting
+from .models import AuditLog, BotFAQ, DEFAULT_SETTINGS, bot_enabled, get_setting, set_setting
 
 
 def _money_stats(qs_events):
@@ -180,3 +184,182 @@ def audit_view(request):
         "core/audit.html",
         {"rows": rows, "active": "audit", "page_title": "Audit Log", "page_eyebrow": "Admin"},
     )
+
+
+# ==================== Chatbot assistant ====================
+
+BOT_INTENTS = [
+    {
+        "keywords": ["hello", "hi", "hey", "jambo", "habari", "mambo", "shikamoo", "good morning",
+                     "good afternoon", "good evening", "habari yako"],
+        "reply": "Hello! How can I help you today? You can ask about signing in, creating an account or what {app} can do.",
+        "chips": ["How do I sign in?", "How does registration work?", "What can {app} do?"],
+    },
+    {
+        "keywords": ["password", "forgot", "reset password", "incorrect", "wrong password",
+                     "cannot log", "can't log", "cant log", "locked", "invalid"],
+        "reply": ("Double-check that Caps Lock is off and you're using the email you registered with. "
+                  "Passwords are case-sensitive. If you still can't sign in, ask a system administrator to reset it for you."),
+        "chips": ["How does registration work?", "Demo accounts"],
+    },
+    {
+        "keywords": ["demo", "test account", "sample account", "admin@nialike.test", "@demo.nialike.test"],
+        "reply": ("On this development instance you can explore with the super admin admin@nialike.test / password "
+                  "or seeded demo organizers such as amina@demo.nialike.test and joseph@demo.nialike.test (password Demo@1234)."),
+        "chips": ["How do I sign in?"],
+    },
+    {
+        "keywords": ["register", "registration", "sign up", "signup", "create account", "new account",
+                     "approval", "approve", "pending", "activate", "activated", "join"],
+        "reply": ("Choose \"Create an account\" below the sign-in form and fill in your details. "
+                  "New accounts start as pending - a system administrator must approve them before you can sign in."),
+        "chips": ["How do I sign in?", "What can {app} do?"],
+    },
+    {
+        "keywords": ["invitation", "invite", "event", "events", "guest", "guests", "rsvp",
+                     "pledge", "pledges", "payment", "payments", "whatsapp", "card", "sms", "message",
+                     "feature", "features", "what can", "do for me", "about"],
+        "reply": ("{app} helps you plan celebrations end to end: build beautiful digital invitations, manage guests and RSVPs, "
+                  "track pledges, record payments, send SMS/WhatsApp messages and share public event pages with QR-friendly links."),
+        "chips": ["How does registration work?", "How do I sign in?"],
+    },
+    {
+        "keywords": ["contact", "support", "admin", "administrator", "help me", "human", "person", "call", "phone", "email"],
+        "reply": ("For anything beyond my answers, please reach out to your system administrator directly - "
+                  "they can approve accounts, reset passwords and configure the platform from the Administration area."),
+        "chips": ["How do I sign in?"],
+    },
+]
+
+BOT_FALLBACK = (
+    "I'm not sure about that one yet. Try asking about signing in, registering an account, "
+    "or what {app} can do - or contact your system administrator."
+)
+
+BOT_FALLBACK_CHIPS = ["How do I sign in?", "How does registration work?", "What can {app} do?"]
+
+
+def _bot_fill(text):
+    return text.replace("{app}", get_setting("brand_name", "Nialike"))
+
+
+def _match_intent(message):
+    msg = re.sub(r"[^a-z0-9@\s]", " ", message.lower())
+    best, best_score = None, 0
+    for intent in BOT_INTENTS:
+        score = sum(1 for kw in intent["keywords"] if kw in msg)
+        if score > best_score:
+            best, best_score = intent, score
+    if best:
+        return _bot_fill(best["reply"]), [_bot_fill(c) for c in best["chips"]]
+    faq_best, faq_score = None, 0
+    for faq in BotFAQ.objects.filter(is_enabled=True):
+        score = sum(1 for kw in faq.keyword_list() if kw in msg)
+        if faq.question.lower() in msg:
+            score += 3
+        if score > faq_score:
+            faq_best, faq_score = faq, score
+    if faq_best:
+        return faq_best.answer, []
+    return _bot_fill(BOT_FALLBACK), [_bot_fill(c) for c in BOT_FALLBACK_CHIPS]
+
+
+BOT_RATE_LIMIT = 20
+BOT_RATE_WINDOW = 60
+
+
+@require_POST
+def assistant_view(request):
+    brand_name = get_setting("brand_name", "Nialike")
+    if not bot_enabled():
+        return JsonResponse({"ok": False, "error": "Assistant disabled."}, status=404)
+
+    now = time.time()
+    bucket = request.session.get("bot_rl") or {"t": int(now), "n": 0}
+    if int(bucket["t"]) != int(now // BOT_RATE_WINDOW):
+        bucket = {"t": int(now // BOT_RATE_WINDOW), "n": 0}
+    bucket["n"] += 1
+    request.session["bot_rl"] = bucket
+    if bucket["n"] > BOT_RATE_LIMIT:
+        return JsonResponse({"ok": False, "error": "Too many messages - please slow down."}, status=429)
+
+    message = ""
+    if request.content_type and "application/json" in request.content_type:
+        try:
+            message = str(json.loads(request.body or b"{}").get("message", ""))
+        except (ValueError, TypeError):
+            message = ""
+    else:
+        message = request.POST.get("message", "")
+    message = message.strip()[:500]
+    if not message:
+        return JsonResponse({"ok": False, "error": "Empty message."}, status=400)
+
+    reply, chips = _match_intent(message)
+    return JsonResponse({"ok": True, "reply": reply, "chips": chips})
+
+
+@login_required
+@user_passes_test(_admin_check)
+def bot_config_view(request):
+    group = request.POST.get("group", "")
+
+    if request.method == "POST" and group == "settings":
+        set_setting("BOT_ENABLED", "1" if request.POST.get("enabled") else "0")
+        set_setting("BOT_NAME", request.POST.get("name", "").strip()[:60] or DEFAULT_SETTINGS["BOT_NAME"])
+        set_setting("BOT_GREETING", request.POST.get("greeting", "").strip()[:400])
+        set_setting("BOT_NUDGE_TEXT", request.POST.get("nudge", "").strip()[:200])
+        set_setting("BOT_QUICK_REPLIES", "\n".join(
+            line.strip()[:120] for line in request.POST.get("quick_replies", "").splitlines() if line.strip()
+        ))
+        audit(request, "bot_config_changed", "settings", None, {"part": "assistant"})
+        messages.success(request, "Chatbot settings saved.")
+        return redirect("core:bot_config")
+
+    elif request.method == "POST" and group in ("faq_add", "faq_update"):
+        if group == "faq_update":
+            faq = get_object_or_404(BotFAQ, pk=request.POST.get("id", 0))
+            faq.question = request.POST.get("question", "").strip()[:200]
+            faq.keywords = request.POST.get("keywords", "").strip()[:300]
+            faq.answer = request.POST.get("answer", "").strip()[:2000]
+            faq.order = int(request.POST.get("order", 0) or 0)
+            faq.is_enabled = bool(request.POST.get("is_enabled"))
+            faq.save()
+            audit(request, "bot_faq_updated", "bot_faq", faq.pk)
+            messages.success(request, "FAQ updated.")
+        else:
+            question = request.POST.get("question", "").strip()[:200]
+            answer = request.POST.get("answer", "").strip()[:2000]
+            if not question or not answer:
+                messages.error(request, "Question and answer are required.")
+            else:
+                faq = BotFAQ.objects.create(
+                    question=question,
+                    keywords=request.POST.get("keywords", "").strip()[:300],
+                    answer=answer,
+                    order=int(request.POST.get("order", 0) or 0),
+                    is_enabled=bool(request.POST.get("is_enabled")),
+                )
+                audit(request, "bot_faq_created", "bot_faq", faq.pk)
+                messages.success(request, "FAQ added.")
+        return redirect("core:bot_config")
+
+    elif request.method == "POST" and group == "faq_delete":
+        faq = get_object_or_404(BotFAQ, pk=request.POST.get("id", 0))
+        faq.delete()
+        audit(request, "bot_faq_deleted", "bot_faq", faq.pk)
+        messages.success(request, "FAQ deleted.")
+        return redirect("core:bot_config")
+
+    context = {
+        "faqs": BotFAQ.objects.all(),
+        "enabled": bot_enabled(),
+        "bot_name": get_setting("BOT_NAME", DEFAULT_SETTINGS["BOT_NAME"]),
+        "greeting": get_setting("BOT_GREETING", DEFAULT_SETTINGS["BOT_GREETING"]),
+        "nudge": get_setting("BOT_NUDGE_TEXT", DEFAULT_SETTINGS["BOT_NUDGE_TEXT"]),
+        "quick_replies": get_setting("BOT_QUICK_REPLIES", DEFAULT_SETTINGS["BOT_QUICK_REPLIES"]),
+        "active": "bot",
+        "page_title": "Chatbot Configuration",
+        "page_eyebrow": "Admin",
+    }
+    return render(request, "core/bot_config.html", context)

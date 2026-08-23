@@ -1,0 +1,55 @@
+{% load static %}{% if brand.bot_enabled %}
+<div class="nl-bot" id="nlBot" data-url="{% url 'core:assistant' %}" data-name="{{ brand.bot_name }}">
+  {{ brand.bot_chips|json_script:"nl-bot-chips" }}
+
+  {% if brand.bot_nudge %}<div class="nl-bot-nudge" id="nlBotNudge" role="status">
+    <span>{{ brand.bot_nudge }}</span>
+    <button type="button" class="nl-bot-nudge-x" aria-label="Dismiss">&times;</button>
+  </div>{% endif %}
+
+  <button type="button" class="nl-bot-launcher" id="nlBotLauncher" aria-label="Chat with {{ brand.bot_name }}" aria-expanded="false">
+    <span class="nl-bot-ring" aria-hidden="true"></span>
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <g class="nl-antenna"><line x1="32" y1="6" x2="32" y2="14"/><circle cx="32" cy="5.5" r="3" fill="#d9b45a" stroke="none"/></g>
+      <rect x="13" y="14" width="38" height="28" rx="10"/>
+      <rect x="8" y="24" width="4" height="9" rx="2"/><rect x="52" y="24" width="4" height="9" rx="2"/>
+      <g class="nl-eyes"><circle cx="25" cy="27" r="3.4" fill="currentColor" stroke="none"/><circle cx="39" cy="27" r="3.4" fill="currentColor" stroke="none"/></g>
+      <path d="M26.5 34.5q5.5 3.6 11 0"/>
+      <rect x="20" y="46" width="24" height="11" rx="5.5"/>
+      <circle cx="32" cy="51.5" r="2.4" fill="#d9b45a" stroke="none"/>
+    </svg>
+  </button>
+
+  <section class="nl-bot-panel" id="nlBotPanel" role="dialog" aria-label="{{ brand.bot_name }} assistant" hidden>
+    <header class="nl-bot-head">
+      <span class="nl-bot-avatar" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="32" y1="7" x2="32" y2="15"/><circle cx="32" cy="6.5" r="3" fill="#d9b45a" stroke="none"/>
+          <rect x="14" y="15" width="36" height="27" rx="10"/>
+          <g><circle cx="26" cy="27" r="3.2" fill="currentColor" stroke="none"/><circle cx="38" cy="27" r="3.2" fill="currentColor" stroke="none"/></g>
+          <path d="M26.5 34q5.5 3.4 11 0"/>
+        </svg>
+      </span>
+      <div class="nl-bot-id">
+        <b>{{ brand.bot_name }}</b>
+        <span class="nl-bot-status"><span class="dot"></span>Online</span>
+      </div>
+      <button type="button" class="nl-bot-close" id="nlBotClose" aria-label="Close chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+
+    <div class="nl-bot-msgs" id="nlBotMsgs" aria-live="polite"></div>
+
+    <div class="nl-bot-chips" id="nlBotChips"></div>
+
+    <form class="nl-bot-form" id="nlBotForm" autocomplete="off">
+      <input type="text" id="nlBotInput" maxlength="500" placeholder="Type your question..." aria-label="Your message">
+      <button type="submit" class="nl-bot-send" aria-label="Send message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </form>
+  </section>
+</div>
+<script src="{% static 'js/assistant.js' %}?v=2" defer></script>
+{% endif %}

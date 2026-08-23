@@ -8,7 +8,7 @@
 <link rel="icon" href="{% static 'img/logo.png' %}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/nialike.css' %}?v=10">
+  <link rel="stylesheet" href="{% static 'css/nialike.css' %}?v=11">
 </head>
 <body>
 <div class="layout">
@@ -86,7 +86,7 @@
     </div>
 
     {% if is_admin %}
-    <div class="nav-group {% if active == 'users' or active == 'settings' or active == 'audit' %}open current{% endif %}">
+    <div class="nav-group {% if active == 'users' or active == 'settings' or active == 'audit' or active == 'bot' %}open current{% endif %}">
       <button type="button" class="nav-group-head" onclick="toggleNavGroup(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span>Administration</span>
@@ -95,6 +95,7 @@
       <div class="nav-group-body">
         <a href="{% url 'accounts:approvals' %}">User Approvals</a>
         <a href="{% url 'core:gateway' %}">Gateway &amp; System</a>
+        <a href="{% url 'core:bot_config' %}">Chatbot Configuration</a>
         <a href="{% url 'core:audit' %}">Audit Log</a>
       </div>
     </div>
@@ -201,7 +202,7 @@
   {% endfor %}
 </div>
 
-<script src="{% static 'js/nialike.js' %}?v=10"></script>
+<script src="{% static 'js/nialike.js' %}?v=11"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
