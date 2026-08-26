@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% load static nialike_extras %}
+
+{% block title %}User Management - {{ brand.app_name }}{% endblock %}
+{% block eyebrow %}Administration{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <div class="row-flex" style="gap:.5rem;flex-wrap:wrap;">
+    <a class="badge {% if not status_filter %}b-blue{% else %}b-muted{% endif %}" href="{% url 'accounts:user_management' %}{% if q %}?q={{ q }}{% endif %}">
+      <span class="dot"></span>All ({{ counts.total }})
+    </a>
+    <a class="badge {% if status_filter == 'pending' %}b-gold{% else %}b-muted{% endif %}" href="{% url 'accounts:user_management' %}?status=pending{% if q %}&q={{ q }}{% endif %}">
+      <span class="dot"></span>Pending ({{ counts.pending }})
+    </a>
+    <a class="badge {% if status_filter == 'approved' %}b-green{% else %}b-muted{% endif %}" href="{% url 'accounts:user_management' %}?status=approved{% if q %}&q={{ q }}{% endif %}">
+      <span class="dot"></span>Approved ({{ counts.approved }})
+    </a>
+    <a class="badge {% if status_filter == 'suspended' %}b-red{% else %}b-muted{% endif %}" href="{% url 'accounts:user_management' %}?status=suspended{% if q %}&q={{ q }}{% endif %}">
+      <span class="dot"></span>Suspended ({{ counts.suspended }})
+    </a>
+  </div>
+  <form method="get" class="row-flex" style="gap:.5rem;">
+    <input type="text" class="neu-input" name="q" value="{{ q }}" placeholder="Search name or email..." style="min-width:220px;">
+    {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <button class="neu-btn sm" type="submit">Search</button>
+    {% if q or status_filter %}<a class="neu-btn sm" href="{% url 'accounts:user_management' %}">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="neu-card table-wrap">
+  {% if rows %}
+  <table class="neu-table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Phone</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Verified</th>
+        <th>Active</th>
+        <th>Joined</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in rows %}
+      <tr>
+        <td>
+          <div class="row-flex">
+            <span class="avatar">
+              {% if u.profile_photo %}
+                <img src="{{ u.profile_photo.url }}" alt="{{ u.name }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+              {% else %}
+                {{ u.name|initials }}
+              {% endif %}
+            </span>
+            <div>
+              <b>{{ u.name|default:"-" }}</b>
+              <div class="small muted">{{ u.email }}</div>
+            </div>
+          </div>
+        </td>
+        <td>{{ u.phone|default:"-" }}</td>
+        <td>
+          <form method="post" class="inline-form">{% csrf_token %}
+            <input type="hidden" name="id" value="{{ u.pk }}">
+            <input type="hidden" name="op" value="role">
+            <select class="neu-input" name="role" onchange="this.form.submit()">
+              {% for r in roles %}<option value="{{ r }}" {% if u.role == r %}selected{% endif %}>{{ r|title }}</option>{% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>
+          <form method="post" class="inline-form">{% csrf_token %}
+            <input type="hidden" name="id" value="{{ u.pk }}">
+            <input type="hidden" name="op" value="status">
+            <select class="neu-input" name="status" onchange="this.form.submit()">
+              {% for s in statuses %}<option value="{{ s }}" {% if u.status == s %}selected{% endif %}>{{ s|status_label }}</option>{% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>
+          {% if u.email_verified %}
+            <span class="badge b-green"><span class="dot"></span>Yes</span>
+          {% else %}
+            <span class="badge b-gold"><span class="dot"></span>No</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="post" class="inline-form" onsubmit="return confirmActiveToggle(this, {{ u.is_active|yesno:'true,false' }})">{% csrf_token %}
+            <input type="hidden" name="id" value="{{ u.pk }}">
+            <input type="hidden" name="op" value="toggle_active">
+            <button type="submit" class="badge {% if u.is_active %}b-green{% else %}b-red{% endif %}" style="border:none;cursor:pointer;">
+              <span class="dot"></span>{{ u.is_active|yesno:"Active,Inactive" }}
+            </button>
+          </form>
+        </td>
+        <td class="small muted nowrap">{{ u.created_at|date:"d M Y" }}</td>
+        <td class="nowrap">
+          {% if u.pk != request.user.pk %}
+          <button type="button" class="neu-btn sm" onclick="openEditModal({{ u.pk }}, '{{ u.name|escapejs|default:"" }}', '{{ u.email|escapejs }}', '{{ u.phone|escapejs|default:"" }}', '{{ u.role }}', '{{ u.status }}')">Edit</button>
+          <button type="button" class="neu-btn sm danger" onclick="openDeleteModal({{ u.pk }}, '{{ u.email|escapejs }}', '{{ u.name|escapejs|default:u.email }}')">Delete</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="big">No users found</div>
+    {% if q or status_filter %}<a class="neu-btn" href="{% url 'accounts:user_management' %}">Clear filters</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="scrim" id="editScrim" onclick="closeEditModal()"></div>
+<aside class="drawer" id="editModal" style="max-width:480px;">
+  <div class="spread mb">
+    <h3>Edit User</h3>
+    <button class="icon-btn" style="width:36px;height:36px;" onclick="closeEditModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="id" id="editUserId" value="">
+    <input type="hidden" name="op" value="edit">
+    <div class="form-row">
+      <label class="f-label">Full name</label>
+      <input type="text" class="neu-input" name="name" id="editName" maxlength="120">
+    </div>
+    <div class="form-row">
+      <label class="f-label">Email</label>
+      <input type="email" class="neu-input" name="email" id="editEmail" maxlength="190">
+    </div>
+    <div class="form-row">
+      <label class="f-label">Phone</label>
+      <input type="text" class="neu-input" name="phone" id="editPhone" maxlength="30">
+    </div>
+    <div class="form-row">
+      <label class="f-label">Role</label>
+      <select class="neu-input" name="role" id="editRole">
+        {% for r in roles %}<option value="{{ r }}">{{ r|title }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="f-label">Status</label>
+      <select class="neu-input" name="status" id="editStatus">
+        {% for s in statuses %}<option value="{{ s }}">{{ s|status_label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="row-flex" style="gap:.5rem;margin-top:1rem;">
+      <button type="submit" class="neu-btn primary">Save changes</button>
+      <button type="button" class="neu-btn" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </form>
+</aside>
+
+<div class="scrim" id="deleteScrim" onclick="closeDeleteModal()"></div>
+<aside class="drawer" id="deleteModal" style="max-width:420px;">
+  <div class="spread mb">
+    <h3>Delete User</h3>
+    <button class="icon-btn" style="width:36px;height:36px;" onclick="closeDeleteModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="alert error mb">
+    This will permanently delete <b id="deleteUserName"></b> and all their events, guests, pledges, payments, and cards. This action cannot be undone.
+  </div>
+  <form method="post" id="deleteForm">{% csrf_token %}
+    <input type="hidden" name="id" id="deleteUserId" value="">
+    <input type="hidden" name="op" value="delete">
+    <div class="form-row">
+      <label class="f-label">Type the user's email to confirm</label>
+      <input type="text" class="neu-input" name="confirm_delete" id="deleteConfirmInput" placeholder="" autocomplete="off" required>
+    </div>
+    <div class="row-flex" style="gap:.5rem;margin-top:1rem;">
+      <button type="submit" class="neu-btn danger">Delete permanently</button>
+      <button type="button" class="neu-btn" onclick="closeDeleteModal()">Cancel</button>
+    </div>
+  </form>
+</aside>
+
+<script>
+function openEditModal(pk, name, email, phone, role, status) {
+  document.getElementById('editUserId').value = pk;
+  document.getElementById('editName').value = name;
+  document.getElementById('editEmail').value = email;
+  document.getElementById('editPhone').value = phone;
+  document.getElementById('editRole').value = role;
+  document.getElementById('editStatus').value = status;
+  document.getElementById('editScrim').classList.add('open');
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal() {
+  document.getElementById('editScrim').classList.remove('open');
+  document.getElementById('editModal').classList.remove('open');
+}
+function openDeleteModal(pk, email, name) {
+  document.getElementById('deleteUserId').value = pk;
+  document.getElementById('deleteUserName').textContent = name;
+  document.getElementById('deleteConfirmInput').placeholder = email;
+  document.getElementById('deleteConfirmInput').value = '';
+  document.getElementById('deleteScrim').classList.add('open');
+  document.getElementById('deleteModal').classList.add('open');
+}
+function closeDeleteModal() {
+  document.getElementById('deleteScrim').classList.remove('open');
+  document.getElementById('deleteModal').classList.remove('open');
+}
+function confirmActiveToggle(form, currentlyActive) {
+  if (currentlyActive) {
+    return confirm('Deactivating this user will prevent them from signing in. Continue?');
+  }
+  return confirm('Activate this user account?');
+}
+</script>
+{% endblock %}

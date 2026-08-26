@@ -10,7 +10,7 @@
   {% if rows %}
   <table class="neu-table">
     <thead>
-      <tr><th>When</th><th>User</th><th>Action</th><th>Module</th><th>Details</th></tr>
+      <tr><th>When</th><th>User</th><th>Action</th><th>Module</th><th>Details</th><th></th></tr>
     </thead>
     <tbody>
       {% for l in rows %}
@@ -19,7 +19,19 @@
         <td>{{ l.actor_name }}</td>
         <td><span class="badge b-blue"><span class="dot"></span>{{ l.action|status_label }}</span></td>
         <td>{{ l.entity|default:"-" }}</td>
-        <td class="small mono">{{ l.meta_json|default:""|truncatechars:90 }}</td>
+        <td class="small mono">{{ l.meta_json|default:""|truncatechars:60 }}</td>
+        <td>
+          <button type="button" class="neu-btn sm" onclick="openAuditDetail(this)"
+            data-when="{{ l.created_at|date:"d M Y, H:i:s" }}"
+            data-actor="{{ l.actor_name }}"
+            data-action="{{ l.action|status_label }}"
+            data-entity="{{ l.entity|default:"-" }}"
+            data-entity-id="{{ l.entity_id|default:"-" }}"
+            data-meta="{{ l.meta_json|default:""|escapejs }}"
+            data-ip="{{ l.ip_address|default:"-" }}"
+            data-user-email="{{ l.user.email|default:"-" }}"
+          >View</button>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -28,4 +40,70 @@
   <div class="empty-state"><div class="big">No audit entries yet</div></div>
   {% endif %}
 </div>
+
+<div class="scrim" id="auditScrim" onclick="closeAuditDetail()"></div>
+<aside class="drawer" id="auditDrawer" style="max-width:480px;">
+  <div class="spread mb">
+    <h3>Audit Detail</h3>
+    <button class="icon-btn" style="width:36px;height:36px;" onclick="closeAuditDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+    <div>
+      <label class="f-label">When</label>
+      <div id="adWhen" class="small"></div>
+    </div>
+    <div>
+      <label class="f-label">User</label>
+      <div id="adActor"></div>
+      <div id="adUserEmail" class="small muted"></div>
+    </div>
+    <div>
+      <label class="f-label">Action</label>
+      <div><span class="badge b-blue" id="adActionBadge"><span class="dot"></span><span id="adAction"></span></span></div>
+    </div>
+    <div>
+      <label class="f-label">Module / Entity</label>
+      <div id="adEntity"></div>
+    </div>
+    <div>
+      <label class="f-label">Entity ID</label>
+      <div id="adEntityId" class="small mono"></div>
+    </div>
+    <div>
+      <label class="f-label">IP Address</label>
+      <div id="adIp" class="small mono"></div>
+    </div>
+    <div>
+      <label class="f-label">Metadata</label>
+      <pre id="adMeta" class="small mono" style="white-space:pre-wrap;word-break:break-all;background:var(--bg2);padding:.75rem;border-radius:8px;max-height:260px;overflow:auto;"></pre>
+    </div>
+  </div>
+</aside>
+
+<script>
+function openAuditDetail(btn) {
+  document.getElementById('adWhen').textContent = btn.dataset.when;
+  document.getElementById('adActor').textContent = btn.dataset.actor;
+  document.getElementById('adUserEmail').textContent = btn.dataset.userEmail;
+  document.getElementById('adAction').textContent = btn.dataset.action;
+  document.getElementById('adEntity').textContent = btn.dataset.entity;
+  document.getElementById('adEntityId').textContent = btn.dataset.entityId;
+  document.getElementById('adIp').textContent = btn.dataset.ip;
+  var raw = btn.dataset.meta;
+  try {
+    var obj = JSON.parse(raw);
+    document.getElementById('adMeta').textContent = JSON.stringify(obj, null, 2);
+  } catch(e) {
+    document.getElementById('adMeta').textContent = raw || '(none)';
+  }
+  document.getElementById('auditScrim').classList.add('open');
+  document.getElementById('auditDrawer').classList.add('open');
+}
+function closeAuditDetail() {
+  document.getElementById('auditScrim').classList.remove('open');
+  document.getElementById('auditDrawer').classList.remove('open');
+}
+</script>
 {% endblock %}

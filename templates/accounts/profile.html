@@ -9,7 +9,37 @@
 <div class="two-col">
   <div class="neu-card">
     <div class="profile-head">
-      <span class="avatar lg">{{ request.user.name|initials|default:"U" }}</span>
+      <div class="avatar-upload-wrap">
+        <form method="post" enctype="multipart/form-data" id="photoUploadForm">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="upload_photo">
+          <input type="file" id="profilePhotoInput" name="profile_photo" accept="image/*" style="display:none;" onchange="previewAndSubmit(this)">
+        </form>
+        <span class="avatar lg" id="profileAvatar">
+          {% if request.user.profile_photo %}
+            <img id="avatarImg" src="{{ request.user.profile_photo.url }}" alt="{{ request.user.name }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+          {% else %}
+            <span id="avatarInitials">{{ request.user.name|initials|default:"U" }}</span>
+          {% endif %}
+        </span>
+        <div class="avatar-hover-overlay" id="avatarOverlay">
+          {% if request.user.profile_photo %}
+            <label class="avatar-action" for="profilePhotoInput" title="Change photo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </label>
+            <button type="button" class="avatar-action danger" onclick="document.getElementById('removePhotoForm').submit()" title="Remove photo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          {% else %}
+            <label class="avatar-action" for="profilePhotoInput" title="Upload photo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </label>
+          {% endif %}
+        </div>
+        <form method="post" id="removePhotoForm" style="display:none;">{% csrf_token %}
+          <input type="hidden" name="op" value="remove_photo">
+        </form>
+      </div>
       <div>
         <h3 class="card-title">{{ request.user.name|default:request.user.email }}</h3>
         <div class="profile-meta">
@@ -103,4 +133,45 @@
     </div>
   </div>
 </div>
+
+<style>
+.avatar-upload-wrap { position: relative; display: inline-block; flex: none; cursor: pointer; }
+.avatar-hover-overlay {
+  position: absolute; inset: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  background: rgba(0,0,0,0.55); opacity: 0; transition: opacity .2s;
+  pointer-events: none;
+}
+.avatar-upload-wrap:hover .avatar-hover-overlay { opacity: 1; pointer-events: auto; }
+.avatar-action {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); color: #fff; cursor: pointer;
+  border: none; transition: background .15s;
+}
+.avatar-action:hover { background: rgba(255,255,255,0.4); }
+.avatar-action.danger:hover { background: rgba(220,50,50,0.7); }
+</style>
+
+<script>
+function previewAndSubmit(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Photo must be under 5MB.');
+    input.value = '';
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var imgHtml = '<img id="avatarImg" src="' + e.target.result + '" alt="Photo" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+    var avatar = document.getElementById('profileAvatar');
+    if (avatar) avatar.innerHTML = imgHtml;
+    var headerAvatar = document.getElementById('headerAvatar');
+    if (headerAvatar) headerAvatar.innerHTML = imgHtml;
+    document.getElementById('photoUploadForm').submit();
+  };
+  reader.readAsDataURL(file);
+}
+</script>
 {% endblock %}

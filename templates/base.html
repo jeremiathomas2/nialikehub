@@ -97,7 +97,7 @@
         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="nav-group-body">
-        <a href="{% url 'accounts:approvals' %}">User Approvals</a>
+        <a href="{% url 'accounts:user_management' %}">User Management</a>
         <a href="{% url 'core:gateway' %}">Gateway &amp; System</a>
         <a href="{% url 'core:bot_config' %}">Chatbot Configuration</a>
         <a href="{% url 'core:audit' %}">Audit Log</a>
@@ -127,7 +127,13 @@
         </button>
         <div class="user-menu">
           <button type="button" class="user-pill" onclick="toggleUserMenu()" aria-haspopup="true" aria-expanded="false">
-            <span class="avatar">{{ request.user.name|initials|default:"U" }}</span>
+            <span class="avatar" id="headerAvatar">
+              {% if request.user.profile_photo %}
+                <img src="{{ request.user.profile_photo.url }}" alt="{{ request.user.name }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+              {% else %}
+                {{ request.user.name|initials|default:"U" }}
+              {% endif %}
+            </span>
             <span class="pill-name">{{ request.user.name|default:request.user.email }}</span>
             <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
@@ -141,9 +147,9 @@
               My Profile
             </a>
             {% if is_admin %}
-            <a class="ud-item" href="{% url 'accounts:approvals' %}">
+            <a class="ud-item" href="{% url 'accounts:user_management' %}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8l2 2-4 4-2-2"/></svg>
-              User Approvals
+              User Management
             </a>
             {% endif %}
             <div class="ud-sep"></div>

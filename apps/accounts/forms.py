@@ -86,13 +86,16 @@ class ProfileForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["name", "email", "phone"]
+        fields = ["name", "email", "phone", "profile_photo"]
         widgets = {
             "name": forms.TextInput(
                 attrs={"class": "neu-input", "autocomplete": "name", "placeholder": "Your full name"}
             ),
             "phone": forms.TextInput(
                 attrs={"class": "neu-input", "autocomplete": "tel", "placeholder": "07xxxxxxxx"}
+            ),
+            "profile_photo": forms.ClearableFileInput(
+                attrs={"class": "neu-input", "accept": "image/*", "id": "profilePhotoInput"}
             ),
         }
 

@@ -38,6 +38,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=120)
     email = models.EmailField(max_length=190, unique=True)
     phone = models.CharField(max_length=30, blank=True, null=True)
+    profile_photo = models.ImageField(upload_to="avatars/", blank=True, null=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     is_approved = models.BooleanField(default=False)
