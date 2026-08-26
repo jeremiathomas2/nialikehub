@@ -10,24 +10,16 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
+from apps.accounts.decorators import get_event_for, visible_events
 from apps.core.services import audit
 from apps.finance.models import Payment
 
 from .models import Event, Guest
 
 
-def _visible_events(user):
-    return Event.objects.all() if user.is_admin else Event.objects.filter(user=user)
-
-
-def _get_event_for(user, event_id):
-    qs = _visible_events(user)
-    return qs.filter(pk=event_id).first()
-
-
 @login_required
 def event_list(request):
-    events = _visible_events(request.user).select_related("user").order_by("-pk")
+    events = visible_events(request.user).select_related("user").order_by("-pk")
     guest_counts = {g["event_id"]: g["n"] for g in Guest.objects.values("event_id").annotate(n=Count("id"))}
     rsvp_counts = {
         g["event_id"]: g["n"]
@@ -104,7 +96,7 @@ def event_create(request):
 
 @login_required
 def event_detail(request, event_id):
-    event = _get_event_for(request.user, event_id)
+    event = get_event_for(request.user, event_id)
     if not event:
         return HttpResponseForbidden("Forbidden")
 
@@ -157,7 +149,7 @@ def event_detail(request, event_id):
 
 @login_required
 def guests_view(request, event_id):
-    event = _get_event_for(request.user, event_id)
+    event = get_event_for(request.user, event_id)
     if not event:
         return HttpResponseForbidden("Forbidden")
 

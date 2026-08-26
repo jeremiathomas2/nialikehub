@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 
+from apps.accounts.decorators import get_event_for
 from apps.core.services import audit
 from apps.events.models import Event, Guest
 
@@ -11,14 +12,9 @@ from .models import MessageLog, MessageTemplate, WhatsAppCard
 from .services import queue_messages
 
 
-def _get_event_for(user, event_id):
-    qs = Event.objects.all() if user.is_admin else Event.objects.filter(user=user)
-    return qs.filter(pk=event_id).first()
-
-
 @login_required
 def messages_view(request, event_id):
-    event = _get_event_for(request.user, event_id)
+    event = get_event_for(request.user, event_id)
     if not event:
         return HttpResponseForbidden("Forbidden")
 
@@ -77,7 +73,7 @@ def messages_view(request, event_id):
 
 @login_required
 def cards_view(request, event_id):
-    event = _get_event_for(request.user, event_id)
+    event = get_event_for(request.user, event_id)
     if not event:
         return HttpResponseForbidden("Forbidden")
 

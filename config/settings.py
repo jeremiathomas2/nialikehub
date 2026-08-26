@@ -22,7 +22,7 @@ def envb(key: str, default: bool = False) -> bool:
 
 SECRET_KEY = envv("SECRET_KEY", "insecure-dev-key-change-me")
 DEBUG = envb("DEBUG", True)
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [h.strip() for h in envv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()]
 APP_URL = envv("APP_URL", "http://127.0.0.1:8000").rstrip("/")
 
 INSTALLED_APPS = [
@@ -46,6 +46,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.accounts.middleware.BruteForceMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -131,3 +132,11 @@ PALMPESA = {
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
+
+SECURE_SSL_REDIRECT = envb("SECURE_SSL_REDIRECT", False)
+SECURE_HSTS_SECONDS = int(envv("SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = envb("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
+SECURE_HSTS_PRELOAD = envb("SECURE_HSTS_PRELOAD", False)
+SESSION_COOKIE_SECURE = envb("SESSION_COOKIE_SECURE", False)
+CSRF_COOKIE_SECURE = envb("CSRF_COOKIE_SECURE", False)
+SECURE_CONTENT_TYPE_NOSNIFF = True

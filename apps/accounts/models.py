@@ -43,6 +43,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_approved = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -52,6 +53,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ["name"]
 
     class Meta:
+        permissions = [
+            ("can_manage_events", "Can manage events"),
+            ("can_manage_guests", "Can manage guests"),
+            ("can_manage_finance", "Can manage pledges and payments"),
+            ("can_manage_messaging", "Can manage messages and cards"),
+            ("can_manage_settings", "Can manage system settings"),
+        ]
         indexes = [
             models.Index(fields=["status"], name="idx_users_status"),
             models.Index(fields=["role"], name="idx_users_role"),

@@ -10,6 +10,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.accounts.decorators import get_event_for
 from apps.core.models import get_setting
 from apps.core.services import audit
 from apps.events.models import Event, Guest
@@ -24,14 +25,9 @@ from apps.messaging.services import normalize_phone, queue_messages
 from .models import Payment, Pledge
 
 
-def _get_event_for(user, event_id):
-    qs = Event.objects.all() if user.is_admin else Event.objects.filter(user=user)
-    return qs.filter(pk=event_id).first()
-
-
 @login_required
 def pledges_view(request, event_id):
-    event = _get_event_for(request.user, event_id)
+    event = get_event_for(request.user, event_id)
     if not event:
         return HttpResponseForbidden("Forbidden")
 
@@ -131,7 +127,7 @@ def payments_view(request):
         op = request.POST.get("op", "")
         if op == "initiate":
             eid = int(request.POST.get("event_id", 0))
-            event = _get_event_for(request.user, eid)
+            event = get_event_for(request.user, eid)
             if not event:
                 return HttpResponseForbidden("Forbidden")
             gid = int(request.POST.get("guest_id", 0) or 0)

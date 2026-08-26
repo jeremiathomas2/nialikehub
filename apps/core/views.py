@@ -4,7 +4,7 @@ import time
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.db.models import DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from apps.accounts.decorators import admin_required
 from apps.accounts.models import User
 from apps.events.models import Event, Guest
 from apps.messaging.models import MessageLog
@@ -98,12 +99,7 @@ def dashboard(request):
     return render(request, "dashboard.html", context)
 
 
-def _admin_check(user):
-    return user.is_authenticated and user.is_admin
-
-
-@login_required
-@user_passes_test(_admin_check)
+@admin_required
 def gateway_view(request):
     if request.method == "POST":
         group = request.POST.get("group", "")
@@ -175,8 +171,7 @@ def gateway_view(request):
     return render(request, "core/gateway.html", context)
 
 
-@login_required
-@user_passes_test(_admin_check)
+@admin_required
 def audit_view(request):
     rows = AuditLog.objects.select_related("user").order_by("-pk")[:200]
     return render(
@@ -299,8 +294,7 @@ def assistant_view(request):
     return JsonResponse({"ok": True, "reply": reply, "chips": chips})
 
 
-@login_required
-@user_passes_test(_admin_check)
+@admin_required
 def bot_config_view(request):
     group = request.POST.get("group", "")
 

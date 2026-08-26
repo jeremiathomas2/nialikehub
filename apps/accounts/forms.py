@@ -104,3 +104,53 @@ class ProfileForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class PasswordResetRequestForm(forms.Form):
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "class": "neu-input",
+                "autofocus": True,
+                "placeholder": "you@example.com",
+                "autocomplete": "email",
+            }
+        )
+    )
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower()
+        if not User.objects.filter(email=email, is_active=True).exists():
+            raise forms.ValidationError("No active account found with this email.")
+        return email
+
+
+class SetNewPasswordForm(forms.Form):
+    new_password = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "neu-input",
+                "autocomplete": "new-password",
+                "placeholder": "At least 8 characters",
+            }
+        )
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "neu-input",
+                "autocomplete": "new-password",
+                "placeholder": "Repeat password",
+            }
+        )
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        password = cleaned.get("new_password")
+        confirm = cleaned.get("confirm_password")
+        if password and len(password) < 8:
+            self.add_error("new_password", "Password must be at least 8 characters.")
+        elif password != confirm:
+            self.add_error("confirm_password", "Passwords do not match.")
+        return cleaned
